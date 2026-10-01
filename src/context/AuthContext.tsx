@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '@/types';
-import { mockUser, mockAdminUser } from '@/data/mockData';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 
@@ -24,81 +23,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const router = useRouter();
 
+  // Helper to format a Supabase Auth user object into our LMS User model
+  const formatSupabaseUser = (authUser: { id: string; email?: string; user_metadata?: Record<string, unknown> }): User => {
+    const email = authUser.email || '';
+    const fullName = (authUser.user_metadata?.full_name as string) || (email.toLowerCase().includes('admin') ? 'Admin Faculty' : 'Nikunj Sonda');
+    const initials = fullName
+      .split(' ')
+      .map((n: string) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+
+    return {
+      id: authUser.id,
+      name: fullName,
+      email,
+      initials: initials || 'NS',
+      role: email.toLowerCase().includes('admin') ? 'admin' : 'learner',
+      term: 'Fall 2026',
+    };
+  };
+
   useEffect(() => {
-    async function initAuth() {
+    async function initSupabaseSession() {
+      if (!isSupabaseConfigured || !supabase) {
+        console.warn('Supabase is not configured yet. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local');
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        if (isSupabaseConfigured && supabase) {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user) {
-            const email = session.user.email || 'nikunj.sonda@aivalytics.com';
-            const fullName = session.user.user_metadata?.full_name || (email.toLowerCase().includes('admin') ? 'Admin Faculty' : 'Nikunj Sonda');
-            const initials = fullName
-              .split(' ')
-              .map((n: string) => n[0])
-              .join('')
-              .toUpperCase()
-              .slice(0, 2);
-
-            const activeUser: User = {
-              id: session.user.id,
-              name: fullName,
-              email: email,
-              initials: initials || 'NS',
-              role: email.toLowerCase().includes('admin') ? 'admin' : 'learner',
-              term: 'Fall 2026',
-            };
-            setUser(activeUser);
-            localStorage.setItem('aivalytics_user', JSON.stringify(activeUser));
-            setIsLoading(false);
-            return;
-          }
-        }
-
-        // Fallback to local storage if present
-        const stored = localStorage.getItem('aivalytics_user');
-        if (stored) {
-          setUser(JSON.parse(stored));
+        // Query live Supabase Auth session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Supabase session retrieval error:', error.message);
+          setUser(null);
+        } else if (session?.user) {
+          setUser(formatSupabaseUser(session.user));
         } else {
           setUser(null);
         }
       } catch (err) {
-        console.error('Error initializing auth:', err);
+        console.error('Failed to initialize Supabase session:', err);
         setUser(null);
       } finally {
         setIsLoading(false);
       }
     }
 
-    initAuth();
+    initSupabaseSession();
 
-    // Listen for Supabase auth state changes
+    // Subscribe to live Supabase Auth state changes (sign in, sign out, token refresh)
     if (isSupabaseConfigured && supabase) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (_event, session) => {
+        async (event, session) => {
           if (session?.user) {
-            const email = session.user.email || '';
-            const fullName = session.user.user_metadata?.full_name || (email.toLowerCase().includes('admin') ? 'Admin Faculty' : 'Nikunj Sonda');
-            const initials = fullName
-              .split(' ')
-              .map((n: string) => n[0])
-              .join('')
-              .toUpperCase()
-              .slice(0, 2);
-
-            const activeUser: User = {
-              id: session.user.id,
-              name: fullName,
-              email,
-              initials: initials || 'NS',
-              role: email.toLowerCase().includes('admin') ? 'admin' : 'learner',
-              term: 'Fall 2026',
-            };
-            setUser(activeUser);
-            localStorage.setItem('aivalytics_user', JSON.stringify(activeUser));
+            setUser(formatSupabaseUser(session.user));
           } else {
             setUser(null);
-            localStorage.removeItem('aivalytics_user');
           }
+          setIsLoading(false);
         }
       );
 
@@ -108,92 +93,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Pure Supabase Auth signInWithPassword
   const signIn = async (email: string, password?: string): Promise<{ success: boolean; error?: string }> => {
-    setIsLoading(true);
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password: password || 'password123',
-        });
-
-        if (error) {
-          setIsLoading(false);
-          return { success: false, error: error.message };
-        }
-
-        const fullName = data.user?.user_metadata?.full_name || (email.toLowerCase().includes('admin') ? 'Admin Faculty' : 'Nikunj Sonda');
-        const initials = fullName
-          .split(' ')
-          .map((n: string) => n[0])
-          .join('')
-          .toUpperCase()
-          .slice(0, 2);
-
-        const loggedUser: User = {
-          id: data.user?.id || 'usr_' + Date.now(),
-          name: fullName,
-          email: data.user?.email || email,
-          initials: initials || 'NS',
-          role: email.toLowerCase().includes('admin') ? 'admin' : 'learner',
-          term: 'Fall 2026',
-        };
-
-        setUser(loggedUser);
-        localStorage.setItem('aivalytics_user', JSON.stringify(loggedUser));
-        setIsLoading(false);
-        return { success: true };
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Authentication failed';
-        setIsLoading(false);
-        return { success: false, error: msg };
-      }
+    if (!isSupabaseConfigured || !supabase) {
+      return { success: false, error: 'Supabase Auth service is not configured.' };
     }
 
-    // Demo fallback if Supabase not reachable
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    const isAdmin = email.toLowerCase().includes('admin');
-    const signedUser: User = isAdmin
-      ? mockAdminUser
-      : {
-          ...mockUser,
-          email,
-          name: email.toLowerCase().includes('nikunj') ? 'Nikunj Sonda' : email.split('@')[0].replace('.', ' '),
-        };
+    setIsLoading(true);
 
-    setUser(signedUser);
-    localStorage.setItem('aivalytics_user', JSON.stringify(signedUser));
-    setIsLoading(false);
-    return { success: true };
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password: password || '',
+      });
+
+      if (error) {
+        setIsLoading(false);
+        return { success: false, error: error.message };
+      }
+
+      if (data.user) {
+        setUser(formatSupabaseUser(data.user));
+      }
+
+      setIsLoading(false);
+      return { success: true };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Authentication failed';
+      setIsLoading(false);
+      return { success: false, error: msg };
+    }
   };
 
   const signUp = async (
-    email: string,
-    password: string,
-    name: string
+    _email: string,
+    _password: string,
+    _name: string
   ): Promise<{ success: boolean; error?: string }> => {
-    // Kept aside per user request
+    // Registration process kept aside as requested
     return { success: false, error: 'Registration is currently invitation-only. Please sign in.' };
   };
 
+  // Pure Supabase Auth signOut
   const signOut = async () => {
     if (isSupabaseConfigured && supabase) {
       try {
         await supabase.auth.signOut();
       } catch (err) {
-        console.error('Sign out error:', err);
+        console.error('Supabase signOut error:', err);
       }
     }
     setUser(null);
-    localStorage.removeItem('aivalytics_user');
     router.replace('/login');
   };
 
   const switchRole = (newRole: UserRole) => {
-    const updated = newRole === 'admin' ? mockAdminUser : mockUser;
-    setUser(updated);
-    localStorage.setItem('aivalytics_user', JSON.stringify(updated));
+    if (!user) return;
+    setUser({ ...user, role: newRole });
   };
 
   return (
