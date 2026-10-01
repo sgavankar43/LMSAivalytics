@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, BookOpen, Ticket, BarChart2, Calendar } from 'lucide-react';
 import { useSidebar } from '@/context/SidebarContext';
+import { useAuth } from '@/context/AuthContext';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -15,7 +16,32 @@ interface AppShellProps {
 export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const { isCollapsed } = useSidebar();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#f8faf9] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[#3ECE92] animate-pulse flex items-center justify-center shadow-xs">
+            <div className="w-3 h-3 bg-[#121614] rounded-[2px]" />
+          </div>
+          <span className="text-xs font-semibold text-gray-500 font-mono">Authenticating...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const mobileTabs = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
