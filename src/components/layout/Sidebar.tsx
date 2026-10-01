@@ -11,17 +11,30 @@ import {
   Calendar,
   LogOut,
   X,
+  ChevronLeft,
+  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { useAuth } from '@/context/AuthContext';
+import { useSidebar } from '@/context/SidebarContext';
 
 interface SidebarProps {
   onCloseMobile?: () => void;
+  isMobileDrawer?: boolean;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  onCloseMobile,
+  isMobileDrawer = false,
+}) => {
   const pathname = usePathname();
   const { signOut, user } = useAuth();
+  const { isCollapsed, toggleSidebar } = useSidebar();
+
+  // If in mobile drawer, never show retracted state
+  const collapsed = isMobileDrawer ? false : isCollapsed;
 
   const navItems = [
     {
@@ -58,11 +71,41 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
   ];
 
   return (
-    <aside className="w-64 bg-[#f8faf9] border-r border-[#eaedf0] min-h-screen flex flex-col justify-between py-6 px-4">
-      {/* Top Header & Navigation */}
+    <aside
+      className={`bg-[#f8faf9] border-r border-[#eaedf0] h-screen sticky top-0 flex flex-col justify-between py-6 transition-all duration-300 ease-in-out z-30 select-none ${
+        collapsed ? 'w-20 px-2' : 'w-64 px-4'
+      }`}
+    >
+      {/* Top Header & Brand */}
       <div>
-        <div className="flex items-center justify-between px-3 mb-8">
-          <Logo size="md" />
+        <div
+          className={`flex items-center mb-8 ${
+            collapsed
+              ? 'justify-center flex-col gap-3 px-1'
+              : 'justify-between px-3'
+          }`}
+        >
+          <Logo size="md" showText={!collapsed} />
+
+          {/* Desktop Retract Toggle Button */}
+          {!isMobileDrawer && (
+            <button
+              onClick={toggleSidebar}
+              className={`p-1.5 rounded-lg text-gray-400 hover:text-gray-800 hover:bg-[#eef2f0] transition-colors hidden lg:flex items-center justify-center ${
+                collapsed ? 'mt-1 w-8 h-8' : ''
+              }`}
+              title={collapsed ? 'Expand navbar' : 'Retract navbar'}
+              aria-label={collapsed ? 'Expand navbar' : 'Retract navbar'}
+            >
+              {collapsed ? (
+                <PanelLeftOpen className="w-4 h-4 text-gray-600" />
+              ) : (
+                <PanelLeftClose className="w-4 h-4 text-gray-500" />
+              )}
+            </button>
+          )}
+
+          {/* Mobile Close Button */}
           {onCloseMobile && (
             <button
               onClick={onCloseMobile}
@@ -74,17 +117,60 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
           )}
         </div>
 
-        <nav className="space-y-1">
+        {/* Navigation Items */}
+        <nav className="space-y-1.5">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = item.active;
 
+            if (collapsed) {
+              // RETRACTED STATE: Clean centered button with icon and hover tooltip
+              return (
+                <div key={item.name} className="relative group flex justify-center">
+                  <Link
+                    href={item.href}
+                    onClick={onCloseMobile}
+                    aria-label={item.name}
+                    className={`w-11 h-11 rounded-xl flex items-center justify-center relative transition-all duration-200 ${
+                      isActive
+                        ? 'bg-[#121614] text-white shadow-xs'
+                        : 'text-[#4b5563] hover:text-[#111827] hover:bg-[#eef2f0]'
+                    }`}
+                  >
+                    <Icon
+                      className={`w-5 h-5 ${
+                        isActive ? 'text-white' : 'text-[#6b7280]'
+                      }`}
+                    />
+
+                    {/* Retracted badge dot or count */}
+                    {item.badge && !isActive && (
+                      <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#3ECE92] text-[#111614] text-[9px] font-bold rounded-full flex items-center justify-center border-2 border-[#f8faf9]">
+                        {item.badge}
+                      </span>
+                    )}
+                  </Link>
+
+                  {/* Floating Tooltip */}
+                  <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-[#121614] text-white text-xs font-semibold rounded-lg shadow-xl whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 flex items-center gap-1.5 top-1/2 -translate-y-1/2">
+                    <span>{item.name}</span>
+                    {item.badge && (
+                      <span className="text-[10px] bg-[#3ECE92] text-[#111614] px-1.5 py-0.2 rounded-full font-bold">
+                        {item.badge}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+
+            // EXPANDED STATE: Full width item with label and badge
             return (
               <Link
                 key={item.name}
                 href={item.href}
                 onClick={onCloseMobile}
-                className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                   isActive
                     ? 'bg-[#121614] text-white shadow-xs font-semibold'
                     : 'text-[#4b5563] hover:text-[#111827] hover:bg-[#eef2f0]'
@@ -111,20 +197,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
       </div>
 
       {/* Bottom Section */}
-      <div className="pt-6 border-t border-[#eaedf0] px-2">
-        <div className="flex items-center justify-between mb-4 px-2">
-          <div className="text-xs text-gray-500">
-            Role: <span className="capitalize font-semibold text-gray-700">{user?.role || 'Learner'}</span>
+      <div className={`pt-6 border-t border-[#eaedf0] ${collapsed ? 'px-1' : 'px-2'}`}>
+        {!collapsed && (
+          <div className="flex items-center justify-between mb-4 px-2">
+            <div className="text-xs text-gray-500">
+              Role: <span className="capitalize font-semibold text-gray-700">{user?.role || 'Learner'}</span>
+            </div>
           </div>
-        </div>
+        )}
 
-        <button
-          onClick={() => signOut()}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-[#4b5563] hover:text-red-600 hover:bg-red-50/60 transition-colors"
-        >
-          <LogOut className="w-4 h-4 text-[#6b7280] group-hover:text-red-600" />
-          <span>Log out</span>
-        </button>
+        {collapsed ? (
+          // Retracted logout button with tooltip
+          <div className="relative group flex justify-center">
+            <button
+              onClick={() => signOut()}
+              aria-label="Log out"
+              className="w-11 h-11 rounded-xl flex items-center justify-center text-[#4b5563] hover:text-red-600 hover:bg-red-50/70 transition-colors"
+            >
+              <LogOut className="w-5 h-5 text-[#6b7280] group-hover:text-red-600" />
+            </button>
+            <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-[#121614] text-white text-xs font-semibold rounded-lg shadow-xl whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 top-1/2 -translate-y-1/2">
+              Log out
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => signOut()}
+            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-[#4b5563] hover:text-red-600 hover:bg-red-50/60 transition-colors"
+          >
+            <LogOut className="w-4 h-4 text-[#6b7280] group-hover:text-red-600" />
+            <span>Log out</span>
+          </button>
+        )}
       </div>
     </aside>
   );

@@ -6,6 +6,7 @@ import { Header } from './Header';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, BookOpen, Ticket, BarChart2, Calendar } from 'lucide-react';
+import { useSidebar } from '@/context/SidebarContext';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -14,6 +15,7 @@ interface AppShellProps {
 export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+  const { isCollapsed } = useSidebar();
 
   const mobileTabs = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -25,7 +27,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-[#f8faf9] flex flex-col lg:flex-row text-gray-900 font-sans">
-      {/* Desktop Left Sidebar */}
+      {/* Desktop Left Sidebar: Pinned/Sticky & Retractable */}
       <div className="hidden lg:block shrink-0">
         <Sidebar />
       </div>
@@ -42,11 +44,11 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <Sidebar onCloseMobile={() => setMobileOpen(false)} />
+        <Sidebar onCloseMobile={() => setMobileOpen(false)} isMobileDrawer={true} />
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 pb-16 lg:pb-0">
+      <div className="flex-1 flex flex-col min-w-0 pb-16 lg:pb-0 transition-all duration-300 ease-in-out">
         <Header onOpenMobile={() => setMobileOpen(true)} />
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1400px] w-full mx-auto">
           {children}

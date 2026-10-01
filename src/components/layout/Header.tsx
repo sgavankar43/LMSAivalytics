@@ -1,8 +1,19 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, Bell, Menu, CheckCircle2, ChevronDown, ShieldCheck, UserCheck, LogOut } from 'lucide-react';
+import {
+  Search,
+  Bell,
+  Menu,
+  ChevronDown,
+  ShieldCheck,
+  UserCheck,
+  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useSidebar } from '@/context/SidebarContext';
 
 interface HeaderProps {
   onOpenMobile?: () => void;
@@ -10,6 +21,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
   const { user, signOut, switchRole } = useAuth();
+  const { isCollapsed, toggleSidebar } = useSidebar();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,9 +51,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
   ];
 
   return (
-    <header className="sticky top-0 z-30 bg-[#f8faf9]/95 backdrop-blur-md border-b border-[#eaedf0] px-4 sm:px-8 py-3.5 flex items-center justify-between">
-      {/* Mobile Hamburger & Search Bar */}
-      <div className="flex items-center gap-3 flex-1 max-w-md">
+    <header className="sticky top-0 z-20 bg-[#f8faf9]/95 backdrop-blur-md border-b border-[#eaedf0] px-4 sm:px-8 py-3.5 flex items-center justify-between">
+      {/* Mobile Hamburger & Desktop Retract Button & Search Bar */}
+      <div className="flex items-center gap-2 sm:gap-3 flex-1 max-w-md">
+        {/* Mobile Hamburger */}
         <button
           onClick={onOpenMobile}
           className="lg:hidden p-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors"
@@ -50,6 +63,21 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
           <Menu className="w-5 h-5" />
         </button>
 
+        {/* Desktop Retract Toggle Button in Header */}
+        <button
+          onClick={toggleSidebar}
+          className="hidden lg:flex p-2 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-[#eef2f0] transition-colors"
+          title={isCollapsed ? 'Expand navbar' : 'Retract navbar'}
+          aria-label={isCollapsed ? 'Expand navbar' : 'Retract navbar'}
+        >
+          {isCollapsed ? (
+            <PanelLeftOpen className="w-4 h-4 text-gray-700" />
+          ) : (
+            <PanelLeftClose className="w-4 h-4 text-gray-500" />
+          )}
+        </button>
+
+        {/* Global Search */}
         <div className="relative w-full">
           <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
