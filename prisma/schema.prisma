@@ -1,0 +1,158 @@
+// Prisma schema file for AIvalytics LMS
+// Configured for Supabase PostgreSQL & Edge runtime compatibility
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  LEARNER
+  INSTRUCTOR
+  ADMIN
+}
+
+enum SessionType {
+  RECORDING
+  LIVE
+}
+
+enum SessionStatus {
+  CLOSED
+  IN_PROGRESS
+  UPCOMING
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model User {
+  id            String          @id @default(uuid())
+  email         String          @unique
+  fullName      String
+  role          Role            @default(LEARNER)
+  avatarUrl     String?
+  term          String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  enrollments   Enrollment[]
+  tickets       SupportTicket[]
+  attendance    AttendanceRecord[]
+  certificates  Certificate[]
+}
+
+model Course {
+  id            String          @id @default(uuid())
+  code          String          @unique
+  title         String
+  description   String
+  category      String
+  instructorId  String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  modules       CourseModule[]
+  sessions      Session[]
+  enrollments   Enrollment[]
+  tickets       SupportTicket[]
+  certificates  Certificate[]
+}
+
+model CourseModule {
+  id          String        @id @default(uuid())
+  courseId    String
+  course      Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  order       Int
+  lessons     Lesson[]
+}
+
+model Lesson {
+  id          String        @id @default(uuid())
+  moduleId    String
+  module      CourseModule  @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title       String
+  order       Int
+  durationMin Int           @default(30)
+  videoUrl    String?
+  isCompleted Boolean       @default(false)
+}
+
+model Session {
+  id              String         @id @default(uuid())
+  courseId        String
+  course          Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title           String
+  type            SessionType    @default(RECORDING)
+  status          SessionStatus  @default(CLOSED)
+  scheduledAt     DateTime
+  durationMinutes Int            @default(90)
+  recordingUrl    String?
+  meetingUrl      String?
+  createdAt       DateTime       @default(now())
+
+  attendance      AttendanceRecord[]
+}
+
+model Enrollment {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId    String
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  enrolledAt  DateTime  @default(now())
+  progress    Float     @default(0.0)
+
+  @@unique([userId, courseId])
+}
+
+model AttendanceRecord {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId   String
+  session     Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  attendedAt  DateTime  @default(now())
+  durationMin Int
+}
+
+model SupportTicket {
+  id          String        @id @default(uuid())
+  ticketCode  String        @unique
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId    String?
+  course      Course?       @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  subject     String
+  description String
+  status      TicketStatus  @default(OPEN)
+  priority    Priority      @default(MEDIUM)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Certificate {
+  id            String    @id @default(uuid())
+  credentialId  String    @unique
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId      String
+  course        Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  issueDate     DateTime  @default(now())
+  grade         String
+}
