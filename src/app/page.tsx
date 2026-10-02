@@ -16,7 +16,8 @@ import {
   mockRecentSessions,
 } from '@/data/mockData';
 import { useAuth } from '@/context/AuthContext';
-import { Calendar, ChevronDown } from 'lucide-react';
+import Link from 'next/link';
+import { Calendar, ChevronDown, FileCheck, ArrowRight } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user, role, isLoading } = useAuth();
@@ -95,6 +96,37 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Active Quizzes Callout Banner for Learners */}
+          <div className="bg-linear-to-r from-[#121614] to-[#1c221f] text-white rounded-2xl p-5 border border-gray-800 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-[#3ECE92]/20 border border-[#3ECE92]/30 flex items-center justify-center shrink-0">
+                <FileCheck className="w-5 h-5 text-[#3ECE92]" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-[#3ECE92] text-[#111614] px-2 py-0.5 rounded-full">
+                    Timed Assessments
+                  </span>
+                  <span className="text-xs text-gray-400 font-mono">• Fall 2026 Term</span>
+                </div>
+                <h3 className="text-sm font-bold text-white mt-1">
+                  Milestone Quizzes & Timed Knowledge Checks are Live
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Complete your timed course quizzes to validate your domain understanding and unlock milestone credits.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/tests"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-[#111614] bg-[#3ECE92] hover:bg-[#34b780] shadow-sm transition-all active:scale-95 shrink-0 self-start sm:self-center"
+            >
+              <span>Take Quizzes</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
 
           {/* 1. Metric Cards Grid (4 in a row) */}

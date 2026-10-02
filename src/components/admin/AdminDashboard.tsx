@@ -9,6 +9,8 @@ import { BroadcastCenterModal } from '@/components/admin/BroadcastCenterModal';
 import { CsvUserImportModal } from '@/components/admin/CsvUserImportModal';
 import { AdminStudentsTable } from '@/components/admin/AdminStudentsTable';
 import { AdminEngagementChart } from '@/components/admin/AdminEngagementChart';
+import { AdminQuizStatsCard } from '@/components/admin/AdminQuizStatsCard';
+import { CsvQuizUploadModal } from '@/components/admin/CsvQuizUploadModal';
 import {
   initialAdminMetrics,
   initialAdminTasks,
@@ -38,6 +40,7 @@ export const AdminDashboard: React.FC = () => {
   // Modals state
   const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
 
   // Toast feedback state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -248,12 +251,19 @@ export const AdminDashboard: React.FC = () => {
         />
       </div>
 
-      {/* 3. Institutional Engagement & Quiz Completion Trends */}
+      {/* 3. Examination & Quiz Performance Stats & Management */}
+      <div id="quiz-management-section">
+        <AdminQuizStatsCard
+          onOpenCreateModal={() => setIsQuizModalOpen(true)}
+        />
+      </div>
+
+      {/* 4. Institutional Engagement & Quiz Completion Trends */}
       <div>
         <AdminEngagementChart />
       </div>
 
-      {/* 4. Enrolled Students Directory (CSV Import & Manual Management) */}
+      {/* 5. Enrolled Students Directory (CSV Import & Manual Management) */}
       <div id="students-section">
         <AdminStudentsTable
           students={students}
@@ -275,6 +285,13 @@ export const AdminDashboard: React.FC = () => {
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onImportStudents={handleImportStudents}
+      />
+
+      {/* CSV Quiz Upload Modal */}
+      <CsvQuizUploadModal
+        isOpen={isQuizModalOpen}
+        onClose={() => setIsQuizModalOpen(false)}
+        onSuccess={() => showToast('New assessment created and published to students!')}
       />
     </div>
   );

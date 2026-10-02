@@ -68,3 +68,25 @@ This document tracks all features, data structures, and implementation phases fo
 ### 7. Course & Cohort Overview
 - [x] Course cards showing enrolled student counts, assigned instructor, and progress index.
 - [x] Quick support ticket resolver directly from the admin dashboard.
+
+---
+
+### 8. Assessment & Quiz Engine (Timed Tests & Result Analytics)
+- [x] **Student Timed Test Experience (`/tests`)**:
+  - Pre-test briefing modal with question count, pass criteria (%), and integrity rules.
+  - Active countdown timer with real-time seconds ticking and warning state under 2 mins.
+  - Interactive radio option selection (A, B, C, D) with instantaneous selection feedback.
+  - Question-by-question navigation with previous/next controls, review flagging, and question palette.
+  - Auto-submission on timer expiry (00:00) and manual submission confirmation check.
+  - Comprehensive results & answer review screen displaying percentage score, pass/fail badge, selected choice, correct answers highlighted in green, and pedagogical explanations.
+- [x] **Admin Test Creation via CSV Upload**:
+  - Drag-and-drop / file upload for CSV question banks.
+  - Downloadable sample CSV template (`questionNumber,questionText,optionA,optionB,optionC,optionD,correctOption,explanation`).
+  - Test metadata configurator: title, course cohort selector, duration time limit in minutes, and passing percentage threshold.
+  - In-browser question parser and preview matrix before publishing.
+- [x] **Admin Test Result Stats on Dashboard**:
+  - Top metric badges: Total published quizzes, total attempts, cohort pass rate %, and average score %.
+  - Quizzes performance breakdown table (Attempts, average score progress bar, pass rate).
+  - Student submissions audit log (Student name, email, score, pass/fail status, timestamp).
+  - Drilldown modal to inspect individual student submissions and scores per test.
+

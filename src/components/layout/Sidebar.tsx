@@ -16,6 +16,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Users,
+  FileCheck,
 } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { useAuth } from '@/context/AuthContext';
@@ -52,6 +53,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       active: pathname.startsWith('/courses'),
     },
     {
+      name: 'Tests & Quizzes',
+      href: '/tests',
+      icon: FileCheck,
+      badge: 'Live',
+      active: pathname.startsWith('/tests'),
+    },
+    {
       name: 'Support',
       href: '/support',
       icon: Ticket,
@@ -78,6 +86,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       href: '/',
       icon: LayoutDashboard,
       active: pathname === '/' || pathname === '/dashboard',
+    },
+    {
+      name: 'Tests & Quizzes',
+      href: '/tests',
+      icon: FileCheck,
+      badge: 'CSV',
+      active: pathname.startsWith('/tests'),
     },
     {
       name: 'Students & CSV',

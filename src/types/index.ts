@@ -123,3 +123,60 @@ export interface ImportedStudent {
   enrolledAt: string;
   status: 'Active' | 'Pending';
 }
+
+// Test & Quiz Data Contracts
+export interface QuizQuestion {
+  id: string;
+  questionNumber: number;
+  questionText: string;
+  options: {
+    A: string;
+    B: string;
+    C: string;
+    D: string;
+  };
+  correctOption: 'A' | 'B' | 'C' | 'D';
+  explanation?: string;
+  points: number;
+}
+
+export interface Quiz {
+  id: string;
+  title: string;
+  description: string;
+  courseCode: string;
+  courseName: string;
+  timeLimitMinutes: number;
+  passingPercentage: number;
+  totalPoints: number;
+  questions: QuizQuestion[];
+  createdAt: string;
+  status: 'Published' | 'Draft' | 'Archived';
+  totalAttempts: number;
+  avgScore: number;
+  passRate: number;
+}
+
+export interface StudentQuizAttempt {
+  id: string;
+  quizId: string;
+  quizTitle: string;
+  courseCode: string;
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  score: number; // in percentage e.g. 85
+  pointsScored: number;
+  totalPoints: number;
+  passed: boolean;
+  answers: Record<string, string>; // { [questionId]: 'A' | 'B' | 'C' | 'D' }
+  timeSpentSeconds: number;
+  completedAt: string;
+}
+
+export interface QuizStats {
+  totalQuizzes: number;
+  totalAttempts: number;
+  avgScore: number;
+  passRate: number;
+}
