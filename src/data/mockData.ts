@@ -11,12 +11,47 @@ import {
 
 export const mockUser: User = {
   id: 'usr_01',
-  name: 'Nikunj Sonda',
-  email: 'nikunj.sonda@aivalytics.com',
-  initials: 'NS',
+  name: 'Alex Morgan',
+  email: 'alex.morgan@aivalytics.com',
+  initials: 'AM',
   role: 'learner',
   term: 'Fall 2026',
 };
+
+export const mockLearnerUsers: User[] = [
+  {
+    id: 'usr_01',
+    name: 'Alex Morgan',
+    email: 'alex.morgan@aivalytics.com',
+    initials: 'AM',
+    role: 'learner',
+    term: 'Fall 2026',
+  },
+  {
+    id: 'usr_02',
+    name: 'Sarah Connor',
+    email: 'sarah.connor@aivalytics.com',
+    initials: 'SC',
+    role: 'learner',
+    term: 'Fall 2026',
+  },
+  {
+    id: 'usr_03',
+    name: 'David Miller',
+    email: 'david.miller@aivalytics.com',
+    initials: 'DM',
+    role: 'learner',
+    term: 'Fall 2026',
+  },
+  {
+    id: 'usr_04',
+    name: 'Emily Watson',
+    email: 'emily.watson@aivalytics.com',
+    initials: 'EW',
+    role: 'learner',
+    term: 'Fall 2026',
+  },
+];
 
 export const mockAdminUser: User = {
   id: 'usr_admin',

@@ -43,7 +43,7 @@ export default function TestsPage() {
   };
 
   // Student specific attempts lookup
-  const studentEmail = user?.email || 'nikunj.sonda@aivalytics.com';
+  const studentEmail = user?.email || 'alex.morgan@aivalytics.com';
   const myAttempts = attempts.filter(
     (a) => a.studentEmail.toLowerCase() === studentEmail.toLowerCase()
   );

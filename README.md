@@ -19,11 +19,11 @@ This project was built pixel-for-pixel according to the provided AIvalytics desi
 1. **Authentication (`/login`)**:
    - Matches the blueprint sign-in card with pill toggle (`Sign in` / `Sign up`).
    - Email & password inputs with custom icons and demo helper buttons.
-   - Demo mode auto-signs in as **Nikunj Sonda (Learner)** or **Admin Faculty**.
+   - Demo mode auto-signs in as **Alex Morgan (Learner)**, other generic learners, or **Admin Faculty**.
    - Seamlessly switches to Supabase Auth as soon as keys are placed in `.env.local`.
 
 2. **Dashboard (`/` or `/dashboard`)**:
-   - Greeting banner: *"Good to see you, Nikunj"* with month selector (*Aug 1 - Aug 31, 2026*).
+   - Greeting banner: *"Good to see you, Alex"* with month selector (*Aug 1 - Aug 31, 2026*).
    - **4 Metric Cards**: Courses enrolled (3), Sessions completed (7), Live sessions (3), Support tickets (2).
    - **Circular Gauges**: Course completion (24%), Live attendance (82%).
    - **Monthly Attendance Chart**: SVG bar chart with Jan-Dec bars and hover tooltips.

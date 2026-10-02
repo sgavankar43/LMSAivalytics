@@ -31,7 +31,7 @@ export default function DashboardPage() {
     'Year-to-date (2026)',
   ];
 
-  const firstName = user?.name ? user.name.split(' ')[0] : 'Nikunj';
+  const firstName = user?.name ? user.name.split(' ')[0] : 'Alex';
   const isAdmin = role === 'admin' || user?.role === 'admin';
 
   if (isLoading) {

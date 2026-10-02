@@ -125,8 +125,8 @@ export const initialBroadcasts: BroadcastNotification[] = [
 export const initialImportedStudents: ImportedStudent[] = [
   {
     id: 'std_1',
-    fullName: 'Nikunj Sonda',
-    email: 'nikunj.sonda@aivalytics.com',
+    fullName: 'Alex Morgan',
+    email: 'alex.morgan@aivalytics.com',
     courseCode: 'ACA-101',
     courseName: 'Academic Information & Governance',
     term: 'Fall 2026',
@@ -135,8 +135,8 @@ export const initialImportedStudents: ImportedStudent[] = [
   },
   {
     id: 'std_2',
-    fullName: 'Rachel Adams',
-    email: 'rachel.adams@aivalytics.com',
+    fullName: 'Sarah Connor',
+    email: 'sarah.connor@aivalytics.com',
     courseCode: 'BRM-204',
     courseName: 'Business Research Methodologies',
     term: 'Fall 2026',
@@ -145,6 +145,16 @@ export const initialImportedStudents: ImportedStudent[] = [
   },
   {
     id: 'std_3',
+    fullName: 'Emily Watson',
+    email: 'emily.watson@aivalytics.com',
+    courseCode: 'AML-305',
+    courseName: 'Applied AI & Neural Predictive Analytics',
+    term: 'Fall 2026',
+    enrolledAt: 'Aug 04, 2026',
+    status: 'Active',
+  },
+  {
+    id: 'std_4',
     fullName: 'David Miller',
     email: 'david.m@aivalytics.com',
     courseCode: 'AML-305',

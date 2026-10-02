@@ -40,16 +40,11 @@ export default function LoginPage() {
     }
   };
 
-  const handleQuickFill = (type: 'learner' | 'admin') => {
+  const handleQuickFill = (userEmail: string) => {
     setErrorMsg('');
     setInfoMsg('');
-    if (type === 'learner') {
-      setEmail('nikunj.sonda@aivalytics.com');
-      setPassword('password123');
-    } else {
-      setEmail('admin@aivalytics.com');
-      setPassword('password123');
-    }
+    setEmail(userEmail);
+    setPassword('password123');
   };
 
   return (
@@ -156,27 +151,45 @@ export default function LoginPage() {
             Connected to live Supabase Auth. Click below to test with pre-seeded accounts:
           </p>
 
-          <div className="mt-3.5 flex flex-col sm:flex-row items-center justify-center gap-2">
+          <div className="mt-3.5 grid grid-cols-2 gap-2">
             <button
               type="button"
-              onClick={() => handleQuickFill('learner')}
-              className="w-full sm:w-auto text-[11px] font-semibold text-gray-700 hover:text-[#059669] bg-gray-50 hover:bg-[#e8f8f0] px-3 py-1.5 rounded-lg transition-colors border border-gray-200 flex items-center justify-center gap-1.5"
-            >
-              <UserCheck className="w-3.5 h-3.5 text-[#3ECE92]" />
-              <span>Learner (Nikunj)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickFill('admin')}
-              className="w-full sm:w-auto text-[11px] font-semibold text-gray-700 hover:text-[#059669] bg-gray-50 hover:bg-[#e8f8f0] px-3 py-1.5 rounded-lg transition-colors border border-gray-200 flex items-center justify-center gap-1.5"
+              onClick={() => handleQuickFill('admin@aivalytics.com')}
+              className="text-[11px] font-semibold text-gray-700 hover:text-[#059669] bg-gray-50 hover:bg-[#e8f8f0] px-2.5 py-1.5 rounded-lg transition-colors border border-gray-200 flex items-center justify-center gap-1.5"
             >
               <ShieldCheck className="w-3.5 h-3.5 text-[#3ECE92]" />
               <span>Faculty Admin</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => handleQuickFill('alex.morgan@aivalytics.com')}
+              className="text-[11px] font-semibold text-gray-700 hover:text-[#059669] bg-gray-50 hover:bg-[#e8f8f0] px-2.5 py-1.5 rounded-lg transition-colors border border-gray-200 flex items-center justify-center gap-1.5"
+            >
+              <UserCheck className="w-3.5 h-3.5 text-[#3ECE92]" />
+              <span>Alex Morgan</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleQuickFill('sarah.connor@aivalytics.com')}
+              className="text-[11px] font-semibold text-gray-700 hover:text-[#059669] bg-gray-50 hover:bg-[#e8f8f0] px-2.5 py-1.5 rounded-lg transition-colors border border-gray-200 flex items-center justify-center gap-1.5"
+            >
+              <UserCheck className="w-3.5 h-3.5 text-[#3ECE92]" />
+              <span>Sarah Connor</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleQuickFill('david.miller@aivalytics.com')}
+              className="text-[11px] font-semibold text-gray-700 hover:text-[#059669] bg-gray-50 hover:bg-[#e8f8f0] px-2.5 py-1.5 rounded-lg transition-colors border border-gray-200 flex items-center justify-center gap-1.5"
+            >
+              <UserCheck className="w-3.5 h-3.5 text-[#3ECE92]" />
+              <span>David Miller</span>
+            </button>
           </div>
 
-          <p className="text-[10px] font-mono text-gray-400 mt-2">
+          <p className="text-[10px] font-mono text-gray-400 mt-2.5">
             Password: password123
           </p>
         </div>

@@ -232,7 +232,7 @@ export const BroadcastCenterModal: React.FC<BroadcastCenterModalProps> = ({
                       <input
                         type="email"
                         required
-                        placeholder="nikunj.sonda@aivalytics.com"
+                        placeholder="alex.morgan@aivalytics.com"
                         value={targetEmail}
                         onChange={(e) => setTargetEmail(e.target.value)}
                         className="w-full text-xs p-2.5 bg-white rounded-xl border border-gray-200 focus:outline-none focus:border-[#3ECE92]"

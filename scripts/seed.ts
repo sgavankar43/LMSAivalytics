@@ -76,11 +76,29 @@ async function getOrCreateAuthUser(email: string, password: string, fullName: st
 async function main() {
   console.log('--- Seeding AIvalytics LMS Database & Supabase Auth ---');
 
-  // 1. Create Seed Auth Users
-  const learnerId = await getOrCreateAuthUser(
-    'nikunj.sonda@aivalytics.com',
+  // 1. Create Seed Auth Users (4 Generic Learners + Admin)
+  const alexId = await getOrCreateAuthUser(
+    'alex.morgan@aivalytics.com',
     'password123',
-    'Nikunj Sonda'
+    'Alex Morgan'
+  );
+
+  const sarahId = await getOrCreateAuthUser(
+    'sarah.connor@aivalytics.com',
+    'password123',
+    'Sarah Connor'
+  );
+
+  const davidId = await getOrCreateAuthUser(
+    'david.miller@aivalytics.com',
+    'password123',
+    'David Miller'
+  );
+
+  const emilyId = await getOrCreateAuthUser(
+    'emily.watson@aivalytics.com',
+    'password123',
+    'Emily Watson'
   );
 
   const adminId = await getOrCreateAuthUser(
@@ -91,22 +109,33 @@ async function main() {
 
   // 2. Upsert Users in Postgres DB
   console.log('Upserting Users into Prisma Database...');
-  await prisma.user.upsert({
-    where: { id: learnerId },
-    update: {
-      email: 'nikunj.sonda@aivalytics.com',
-      fullName: 'Nikunj Sonda',
-      role: 'LEARNER',
-      term: 'Fall 2026',
-    },
-    create: {
-      id: learnerId,
-      email: 'nikunj.sonda@aivalytics.com',
-      fullName: 'Nikunj Sonda',
-      role: 'LEARNER',
-      term: 'Fall 2026',
-    },
-  });
+  const genericLearners = [
+    { id: alexId, email: 'alex.morgan@aivalytics.com', fullName: 'Alex Morgan' },
+    { id: sarahId, email: 'sarah.connor@aivalytics.com', fullName: 'Sarah Connor' },
+    { id: davidId, email: 'david.miller@aivalytics.com', fullName: 'David Miller' },
+    { id: emilyId, email: 'emily.watson@aivalytics.com', fullName: 'Emily Watson' },
+  ];
+
+  for (const learner of genericLearners) {
+    await prisma.user.upsert({
+      where: { id: learner.id },
+      update: {
+        email: learner.email,
+        fullName: learner.fullName,
+        role: 'LEARNER',
+        term: 'Fall 2026',
+      },
+      create: {
+        id: learner.id,
+        email: learner.email,
+        fullName: learner.fullName,
+        role: 'LEARNER',
+        term: 'Fall 2026',
+      },
+    });
+  }
+
+  const learnerId = alexId;
 
   await prisma.user.upsert({
     where: { id: adminId },
@@ -250,7 +279,21 @@ async function main() {
 
   // 6. Upsert Support Tickets
   console.log('Seeding Support Tickets...');
-  await prisma.supportTicket.deleteMany({ where: { userId: learnerId } });
+  await prisma.supportTicket.deleteMany({});
+  await prisma.certificate.deleteMany({});
+  await prisma.user.deleteMany({
+    where: {
+      email: {
+        notIn: [
+          'admin@aivalytics.com',
+          'alex.morgan@aivalytics.com',
+          'sarah.connor@aivalytics.com',
+          'david.miller@aivalytics.com',
+          'emily.watson@aivalytics.com',
+        ],
+      },
+    },
+  });
   await prisma.supportTicket.createMany({
     data: [
       {
@@ -278,7 +321,6 @@ async function main() {
 
   // 7. Upsert Certificates
   console.log('Seeding Certificates...');
-  await prisma.certificate.deleteMany({ where: { userId: learnerId } });
   await prisma.certificate.create({
     data: {
       credentialId: 'AIV-2026-DL-98214',
@@ -292,12 +334,13 @@ async function main() {
   console.log('\n✅ Database and Supabase Auth seeded successfully!');
   console.log('=============================================');
   console.log('TEST CREDENTIALS:');
-  console.log('Learner Account:');
-  console.log('  Email:    nikunj.sonda@aivalytics.com');
-  console.log('  Password: password123');
+  console.log('Generic Learner Accounts:');
+  console.log('  1. Alex Morgan:    alex.morgan@aivalytics.com   (password123)');
+  console.log('  2. Sarah Connor:   sarah.connor@aivalytics.com  (password123)');
+  console.log('  3. David Miller:   david.miller@aivalytics.com  (password123)');
+  console.log('  4. Emily Watson:   emily.watson@aivalytics.com  (password123)');
   console.log('\nAdmin Faculty Account:');
-  console.log('  Email:    admin@aivalytics.com');
-  console.log('  Password: password123');
+  console.log('  Admin:             admin@aivalytics.com         (password123)');
   console.log('=============================================');
 }
 

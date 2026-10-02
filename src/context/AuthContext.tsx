@@ -26,7 +26,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Helper to format a Supabase Auth user object into our LMS User model
   const formatSupabaseUser = (authUser: { id: string; email?: string; user_metadata?: Record<string, unknown> }): User => {
     const email = authUser.email || '';
-    const fullName = (authUser.user_metadata?.full_name as string) || (email.toLowerCase().includes('admin') ? 'Admin Faculty' : 'Nikunj Sonda');
+    let defaultLearnerName = 'Alex Morgan';
+    if (email.toLowerCase().startsWith('sarah')) defaultLearnerName = 'Sarah Connor';
+    else if (email.toLowerCase().startsWith('david')) defaultLearnerName = 'David Miller';
+    else if (email.toLowerCase().startsWith('emily')) defaultLearnerName = 'Emily Watson';
+
+    const fullName =
+      (authUser.user_metadata?.full_name as string) ||
+      (email.toLowerCase().includes('admin') ? 'Admin Faculty' : defaultLearnerName);
     const initials = fullName
       .split(' ')
       .map((n: string) => n[0])
@@ -38,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       id: authUser.id,
       name: fullName,
       email,
-      initials: initials || 'NS',
+      initials: initials || 'AM',
       role: email.toLowerCase().includes('admin') ? 'admin' : 'learner',
       term: 'Fall 2026',
     };

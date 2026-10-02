@@ -142,10 +142,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
             className="flex items-center gap-2.5 p-1 rounded-full hover:bg-gray-100/70 transition-colors"
           >
             <div className="w-8 h-8 rounded-full bg-[#3ECE92] text-[#121614] flex items-center justify-center font-bold text-xs shadow-xs">
-              {user?.initials || 'NS'}
+              {user?.initials || 'AM'}
             </div>
             <span className="text-sm font-semibold text-gray-800 hidden sm:inline-block">
-              {user?.name || 'Nikunj Sonda'}
+              {user?.name || 'Alex Morgan'}
             </span>
             <ChevronDown className="w-3.5 h-3.5 text-gray-400 hidden sm:inline-block" />
           </button>
@@ -153,8 +153,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
           {showProfileMenu && (
             <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
               <div className="px-3 py-2 border-b border-gray-100 mb-1">
-                <p className="text-xs font-semibold text-gray-900">{user?.name || 'Nikunj Sonda'}</p>
-                <p className="text-[11px] text-gray-500 truncate">{user?.email || 'nikunj.sonda@aivalytics.com'}</p>
+                <p className="text-xs font-semibold text-gray-900">{user?.name || 'Alex Morgan'}</p>
+                <p className="text-[11px] text-gray-500 truncate">{user?.email || 'alex.morgan@aivalytics.com'}</p>
                 <div className="mt-1 flex items-center gap-1.5">
                   <span className="text-[10px] font-medium bg-[#e8f8f0] text-[#059669] px-2 py-0.5 rounded-full capitalize">
                     {user?.role || 'Learner'} Account
@@ -180,7 +180,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
                     }`}
                   >
                     <UserCheck className="w-3.5 h-3.5" />
-                    <span>Learner (Nikunj)</span>
+                    <span>Learner (Alex Morgan)</span>
                   </button>
                   <button
                     onClick={() => {
