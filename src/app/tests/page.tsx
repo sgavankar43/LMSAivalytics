@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
 import { useAuth } from '@/context/AuthContext';
 import { useTests } from '@/context/TestContext';
@@ -25,8 +26,13 @@ import {
 } from 'lucide-react';
 
 export default function TestsPage() {
+  const router = useRouter();
   const { user, role } = useAuth();
   const { quizzes, attempts, stats } = useTests();
+
+  useEffect(() => {
+    router.replace('/assessments?tab=quizzes');
+  }, [router]);
 
   const isAdmin = role === 'admin' || user?.role === 'admin';
 

@@ -180,3 +180,71 @@ export interface QuizStats {
   avgScore: number;
   passRate: number;
 }
+
+// Guided Project Submissions Data Contracts
+export type SubmissionFileType = 'pdf' | 'doc' | 'ppt' | 'image' | 'link';
+
+export interface SubmittedFile {
+  name: string;
+  size: string;
+  type: SubmissionFileType;
+  url?: string;
+}
+
+export interface ProjectSubpart {
+  id: string;
+  moduleId: string;
+  subpartCode: string;
+  title: string;
+  description: string;
+  deadline: string;
+  allowedFormats: SubmissionFileType[];
+  maxPoints: number;
+  guidelines: string[];
+}
+
+export interface ProjectModule {
+  id: string;
+  moduleNumber: number;
+  title: string;
+  subtitle: string;
+  weeks: string;
+  miniChallenge: string;
+  deliverableBuild: string;
+  certificationName: string;
+  subparts: ProjectSubpart[];
+  status: 'active' | 'upcoming' | 'completed';
+}
+
+export type SubmissionReviewStatus =
+  | 'PENDING_REVIEW'
+  | 'APPROVED'
+  | 'REVISION_REQUESTED'
+  | 'EXCELLENT';
+
+export interface StudentProjectSubmission {
+  id: string;
+  moduleId: string;
+  subpartId: string;
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  submittedAt: string;
+  files: SubmittedFile[];
+  links: string[];
+  studentNotes?: string;
+  status: SubmissionReviewStatus;
+  score?: number;
+  maxPoints: number;
+  adminRemarks?: string;
+  adminEvaluatedAt?: string;
+  adminEvaluatorName?: string;
+}
+
+export interface ProjectSubmissionStats {
+  totalSubparts: number;
+  totalSubmissions: number;
+  pendingReview: number;
+  approvedCount: number;
+  revisionRequestedCount: number;
+}

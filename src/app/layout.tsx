@@ -4,6 +4,7 @@ import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { SidebarProvider } from '@/context/SidebarContext';
 import { TestProvider } from '@/context/TestContext';
+import { ProjectSubmissionsProvider } from '@/context/ProjectSubmissionsContext';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -36,7 +37,9 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-[#f8faf9] text-gray-900">
         <AuthProvider>
           <SidebarProvider>
-            <TestProvider>{children}</TestProvider>
+            <TestProvider>
+              <ProjectSubmissionsProvider>{children}</ProjectSubmissionsProvider>
+            </TestProvider>
           </SidebarProvider>
         </AuthProvider>
       </body>

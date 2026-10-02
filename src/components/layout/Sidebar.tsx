@@ -53,11 +53,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       active: pathname.startsWith('/courses'),
     },
     {
-      name: 'Tests & Quizzes',
-      href: '/tests',
+      name: 'Assessments',
+      href: '/assessments',
       icon: FileCheck,
-      badge: 'Live',
-      active: pathname.startsWith('/tests'),
+      badge: 'Projects',
+      active: pathname.startsWith('/assessments') || pathname.startsWith('/tests'),
     },
     {
       name: 'Support',
@@ -88,11 +88,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       active: pathname === '/' || pathname === '/dashboard',
     },
     {
-      name: 'Tests & Quizzes',
-      href: '/tests',
+      name: 'Assessments',
+      href: '/assessments',
       icon: FileCheck,
-      badge: 'CSV',
-      active: pathname.startsWith('/tests'),
+      badge: 'Review',
+      active: pathname.startsWith('/assessments') || pathname.startsWith('/tests'),
     },
     {
       name: 'Students & CSV',
