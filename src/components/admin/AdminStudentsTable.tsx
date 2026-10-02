@@ -107,7 +107,7 @@ export const AdminStudentsTable: React.FC<AdminStudentsTableProps> = ({
                 </td>
               </tr>
             ) : (
-              filteredStudents.map((student) => {
+              filteredStudents.map((student, idx) => {
                 const initials = student.fullName
                   .split(' ')
                   .map((n) => n[0])
@@ -115,7 +115,7 @@ export const AdminStudentsTable: React.FC<AdminStudentsTableProps> = ({
                   .slice(0, 2);
 
                 return (
-                  <tr key={student.id} className="hover:bg-gray-50/70 transition-colors">
+                  <tr key={student.id ? `${student.id}-${idx}` : `student-${idx}`} className="hover:bg-gray-50/70 transition-colors">
                     {/* Name & Initials */}
                     <td className="py-3.5 px-6">
                       <div className="flex items-center gap-3">

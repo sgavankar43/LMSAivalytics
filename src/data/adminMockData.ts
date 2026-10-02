@@ -156,7 +156,7 @@ export const initialImportedStudents: ImportedStudent[] = [
   {
     id: 'std_4',
     fullName: 'David Miller',
-    email: 'david.m@aivalytics.com',
+    email: 'david.miller@aivalytics.com',
     courseCode: 'AML-305',
     courseName: 'Applied AI & Neural Predictive Analytics',
     term: 'Fall 2026',
@@ -164,7 +164,7 @@ export const initialImportedStudents: ImportedStudent[] = [
     status: 'Active',
   },
   {
-    id: 'std_4',
+    id: 'std_5',
     fullName: 'Sophia Patel',
     email: 'sophia.p@aivalytics.com',
     courseCode: 'ACA-101',
@@ -174,7 +174,7 @@ export const initialImportedStudents: ImportedStudent[] = [
     status: 'Active',
   },
   {
-    id: 'std_5',
+    id: 'std_6',
     fullName: 'Liam Chen',
     email: 'liam.chen@aivalytics.com',
     courseCode: 'BRM-204',
