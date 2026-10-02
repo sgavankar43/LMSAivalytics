@@ -14,6 +14,8 @@ import {
   Clock,
   Award,
   Layers,
+  BookOpen,
+  Sparkles,
 } from 'lucide-react';
 
 interface CsvQuizUploadModalProps {
@@ -39,7 +41,7 @@ export const CsvQuizUploadModal: React.FC<CsvQuizUploadModalProps> = ({
 
   // Test Metadata Form State
   const [title, setTitle] = useState('');
-  const [courseCode, setCourseCode] = useState('ACA-101');
+  const [courseCode, setCourseCode] = useState('ANPM-101');
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(15);
   const [passingPercentage, setPassingPercentage] = useState(70);
   const [description, setDescription] = useState('');
@@ -55,6 +57,7 @@ export const CsvQuizUploadModal: React.FC<CsvQuizUploadModalProps> = ({
   if (!isOpen) return null;
 
   const coursesList = [
+    { code: 'ANPM-101', name: 'AI-Native Project Management Program' },
     { code: 'ACA-101', name: 'Academic Information & Governance' },
     { code: 'BRM-204', name: 'Business Research Methodologies' },
     { code: 'AML-305', name: 'Applied AI & Neural Predictive Analytics' },
@@ -204,12 +207,12 @@ export const CsvQuizUploadModal: React.FC<CsvQuizUploadModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl max-w-3xl w-full border border-gray-100 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+      <div className="bg-white rounded-3xl max-w-2xl sm:max-w-3xl w-full border border-gray-100 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between shrink-0 bg-white">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#e8f8f0] text-[#3ECE92] flex items-center justify-center border border-[#d1f4e2]">
+            <div className="w-10 h-10 rounded-2xl bg-[#e8f8f0] text-[#059669] flex items-center justify-center border border-[#d1f4e2] shrink-0">
               <HelpCircle className="w-5 h-5 text-[#3ECE92]" />
             </div>
             <div>
@@ -228,10 +231,10 @@ export const CsvQuizUploadModal: React.FC<CsvQuizUploadModalProps> = ({
         </div>
 
         {/* Content Body */}
-        <form onSubmit={handleCreateQuiz} className="p-6 overflow-y-auto space-y-5 flex-1">
+        <form onSubmit={handleCreateQuiz} className="p-6 sm:p-7 overflow-y-auto overflow-x-hidden space-y-5 flex-1">
           {/* Success Banner */}
           {uploadSuccess && (
-            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center gap-3">
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center gap-3 animate-in fade-in">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
               <div>
                 <p className="text-xs font-semibold">Assessment Published Successfully!</p>
@@ -243,9 +246,9 @@ export const CsvQuizUploadModal: React.FC<CsvQuizUploadModalProps> = ({
           )}
 
           {/* Test Metadata Configuration */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-gray-700 mb-1">
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+            <div className="sm:col-span-12">
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                 Assessment Title *
               </label>
               <input
@@ -254,18 +257,19 @@ export const CsvQuizUploadModal: React.FC<CsvQuizUploadModalProps> = ({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Session 3: Neural Vector Embeddings & Similarity"
-                className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-gray-200 focus:border-[#3ECE92] focus:ring-2 focus:ring-[#3ECE92]/20 outline-none transition-all"
+                className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-gray-200 focus:border-[#3ECE92] focus:ring-2 focus:ring-[#3ECE92]/20 outline-none transition-all bg-white"
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">
+            <div className="sm:col-span-6">
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5 text-gray-400" />
                 Course Cohort *
               </label>
               <select
                 value={courseCode}
                 onChange={(e) => setCourseCode(e.target.value)}
-                className="w-full text-xs px-3 py-2.5 rounded-xl border border-gray-200 focus:border-[#3ECE92] focus:ring-2 focus:ring-[#3ECE92]/20 outline-none bg-white font-medium"
+                className="w-full text-xs px-3 py-2.5 rounded-xl border border-gray-200 focus:border-[#3ECE92] focus:ring-2 focus:ring-[#3ECE92]/20 outline-none bg-white font-medium text-gray-800"
               >
                 {coursesList.map((c) => (
                   <option key={c.code} value={c.code}>
@@ -275,91 +279,103 @@ export const CsvQuizUploadModal: React.FC<CsvQuizUploadModalProps> = ({
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-gray-400" />
-                  Time Limit
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    min="1"
-                    max="180"
-                    required
-                    value={timeLimitMinutes}
-                    onChange={(e) => setTimeLimitMinutes(parseInt(e.target.value, 10) || 15)}
-                    className="w-full text-xs px-3 py-2.5 rounded-xl border border-gray-200 focus:border-[#3ECE92] focus:ring-2 focus:ring-[#3ECE92]/20 outline-none pr-10 font-mono font-bold"
-                  />
-                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 font-medium">
-                    mins
-                  </span>
-                </div>
+            <div className="sm:col-span-3">
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-gray-400" />
+                Time Limit
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="1"
+                  max="180"
+                  required
+                  value={timeLimitMinutes}
+                  onChange={(e) => setTimeLimitMinutes(parseInt(e.target.value, 10) || 15)}
+                  className="w-full text-xs px-3 py-2.5 rounded-xl border border-gray-200 focus:border-[#3ECE92] focus:ring-2 focus:ring-[#3ECE92]/20 outline-none pr-11 font-mono font-bold text-gray-900"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-gray-400 font-medium pointer-events-none">
+                  mins
+                </span>
               </div>
+            </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
-                  <Award className="w-3.5 h-3.5 text-gray-400" />
-                  Passing %
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    min="30"
-                    max="100"
-                    required
-                    value={passingPercentage}
-                    onChange={(e) => setPassingPercentage(parseInt(e.target.value, 10) || 70)}
-                    className="w-full text-xs px-3 py-2.5 rounded-xl border border-gray-200 focus:border-[#3ECE92] focus:ring-2 focus:ring-[#3ECE92]/20 outline-none pr-8 font-mono font-bold"
-                  />
-                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 font-medium">
-                    %
-                  </span>
-                </div>
+            <div className="sm:col-span-3">
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5">
+                <Award className="w-3.5 h-3.5 text-gray-400" />
+                Passing %
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="30"
+                  max="100"
+                  required
+                  value={passingPercentage}
+                  onChange={(e) => setPassingPercentage(parseInt(e.target.value, 10) || 70)}
+                  className="w-full text-xs px-3 py-2.5 rounded-xl border border-gray-200 focus:border-[#3ECE92] focus:ring-2 focus:ring-[#3ECE92]/20 outline-none pr-8 font-mono font-bold text-gray-900"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-gray-400 font-medium pointer-events-none">
+                  %
+                </span>
               </div>
             </div>
           </div>
 
           {/* CSV Template Download & Upload Box */}
-          <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold text-gray-800">CSV Question Bank Schema</p>
-              <p className="text-[11px] text-gray-500 font-mono mt-0.5">
-                questionNumber,questionText,optionA,optionB,optionC,optionD,correctOption,explanation
-              </p>
+          <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200/80 space-y-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-bold text-gray-800">CSV Question Bank Schema</p>
+                <span className="px-2 py-0.5 text-[10px] font-mono font-semibold bg-[#e8f8f0] text-[#059669] rounded-md border border-[#d1f4e2]">
+                  8 Columns
+                </span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleDownloadSample}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-100 shadow-xs transition-colors shrink-0"
+                >
+                  <Download className="w-3.5 h-3.5 text-gray-500" />
+                  <span>Template</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLoadSample}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-[#059669] bg-[#e8f8f0] border border-[#d1f4e2] hover:bg-[#d8f4e6] transition-colors shrink-0"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[#059669]" />
+                  <span>Load Sample</span>
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleDownloadSample}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 shadow-xs transition-colors shrink-0"
-              >
-                <Download className="w-3.5 h-3.5 text-gray-500" />
-                Template
-              </button>
-              <button
-                type="button"
-                onClick={handleLoadSample}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#059669] bg-[#e8f8f0] border border-[#d1f4e2] hover:bg-[#d8f4e6] transition-colors shrink-0"
-              >
-                Load Sample
-              </button>
+
+            <div className="bg-white px-3 py-2 rounded-xl border border-gray-200/80 font-mono text-[11px] text-gray-600 overflow-x-auto whitespace-nowrap">
+              <span className="text-[#059669] font-bold">questionNumber</span>,{' '}
+              <span className="text-gray-800 font-medium">questionText</span>,{' '}
+              <span className="text-blue-600">optionA</span>,{' '}
+              <span className="text-blue-600">optionB</span>,{' '}
+              <span className="text-blue-600">optionC</span>,{' '}
+              <span className="text-blue-600">optionD</span>,{' '}
+              <span className="text-amber-600 font-bold">correctOption</span>,{' '}
+              <span className="text-purple-600">explanation</span>
             </div>
           </div>
 
           {/* Upload Dropzone */}
-          <div className="relative border-2 border-dashed border-gray-300 hover:border-[#3ECE92] rounded-2xl p-6 text-center transition-all bg-white group cursor-pointer">
+          <div className="relative border-2 border-dashed border-gray-300 hover:border-[#3ECE92] rounded-2xl p-6 text-center transition-all bg-white hover:bg-gray-50/50 group cursor-pointer">
             <input
               type="file"
               accept=".csv"
               onChange={handleFileChange}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
             />
-            <div className="flex flex-col items-center">
-              <div className="w-12 h-12 rounded-xl bg-gray-100 group-hover:bg-[#e8f8f0] flex items-center justify-center transition-colors mb-2">
+            <div className="flex flex-col items-center pointer-events-none">
+              <div className="w-12 h-12 rounded-2xl bg-gray-100 group-hover:bg-[#e8f8f0] flex items-center justify-center transition-colors mb-2.5">
                 <Upload className="w-6 h-6 text-gray-400 group-hover:text-[#3ECE92]" />
               </div>
-              <p className="text-xs font-semibold text-gray-700">
+              <p className="text-xs font-bold text-gray-800">
                 {fileName ? fileName : 'Click or drag & drop CSV question file here'}
               </p>
               <p className="text-[11px] text-gray-400 mt-1">
@@ -428,7 +444,7 @@ export const CsvQuizUploadModal: React.FC<CsvQuizUploadModalProps> = ({
             <button
               type="submit"
               disabled={isProcessing || parsedPreview.length === 0}
-              className="px-5 py-2.5 rounded-xl text-xs font-semibold text-[#111614] bg-[#3ECE92] hover:bg-[#34b780] shadow-sm disabled:opacity-50 transition-all flex items-center gap-2"
+              className="px-5 py-2.5 rounded-xl text-xs font-bold text-[#111614] bg-[#3ECE92] hover:bg-[#34b780] shadow-sm disabled:opacity-40 disabled:hover:bg-[#3ECE92] transition-all flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed"
             >
               <FileSpreadsheet className="w-4 h-4" />
               <span>Confirm & Publish Assessment ({parsedPreview.length} Questions)</span>
