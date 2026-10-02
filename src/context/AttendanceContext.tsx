@@ -35,34 +35,37 @@ const SESSIONS_STORAGE_KEY = 'aivalytics_sessions_v1';
 const ATTENDANCE_STORAGE_KEY = 'aivalytics_attendance_v1';
 
 export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [sessions, setSessions] = useState<SessionItem[]>(mockRecentSessions);
-  const [attendances, setAttendances] =
-    useState<Record<string, SessionAttendance>>(initialSessionAttendances);
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  // Load from localStorage on mount
-  useEffect(() => {
+  const [sessions, setSessions] = useState<SessionItem[]>(() => {
     if (typeof window !== 'undefined') {
       try {
         const savedSessions = localStorage.getItem(SESSIONS_STORAGE_KEY);
         if (savedSessions) {
-          setSessions(JSON.parse(savedSessions));
+          return JSON.parse(savedSessions);
         }
+      } catch (err) {
+        console.error('Failed to load sessions from localStorage', err);
+      }
+    }
+    return mockRecentSessions;
+  });
 
+  const [attendances, setAttendances] = useState<Record<string, SessionAttendance>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
         const savedAttendance = localStorage.getItem(ATTENDANCE_STORAGE_KEY);
         if (savedAttendance) {
-          setAttendances(JSON.parse(savedAttendance));
+          return JSON.parse(savedAttendance);
         }
       } catch (err) {
         console.error('Failed to load attendance from localStorage', err);
       }
-      setIsInitialized(true);
     }
-  }, []);
+    return initialSessionAttendances;
+  });
 
   // Save to localStorage on change
   useEffect(() => {
-    if (isInitialized && typeof window !== 'undefined') {
+    if (typeof window !== 'undefined') {
       try {
         localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessions));
         localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(attendances));
@@ -70,7 +73,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         console.error('Failed to save attendance to localStorage', err);
       }
     }
-  }, [sessions, attendances, isInitialized]);
+  }, [sessions, attendances]);
 
   // Add new session scheduled by Admin
   const addSession = (sessionData: Omit<SessionItem, 'id'>): SessionItem => {

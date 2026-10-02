@@ -17,6 +17,7 @@ import {
   PanelLeftOpen,
   Users,
   FileCheck,
+  UserCheck,
 } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { useAuth } from '@/context/AuthContext';
@@ -86,6 +87,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       href: '/',
       icon: LayoutDashboard,
       active: pathname === '/' || pathname === '/dashboard',
+    },
+    {
+      name: 'Attendance',
+      href: '/attendance',
+      icon: UserCheck,
+      badge: 'Roster',
+      active: pathname.startsWith('/attendance'),
     },
     {
       name: 'Assessments',
