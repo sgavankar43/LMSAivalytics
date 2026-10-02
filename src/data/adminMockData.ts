@@ -1,0 +1,181 @@
+import {
+  AdminTask,
+  BroadcastNotification,
+  ImportedStudent,
+  MetricCardData,
+} from '@/types';
+
+export const initialAdminMetrics: MetricCardData[] = [
+  {
+    id: 'total_students',
+    title: 'Total enrolled students',
+    value: 148,
+    changeText: '+12 this month',
+    changeType: 'positive',
+    icon: 'users',
+  },
+  {
+    id: 'active_courses',
+    title: 'Active courses & cohorts',
+    value: 6,
+    changeText: '18 curriculum modules',
+    changeType: 'neutral',
+    icon: 'book',
+  },
+  {
+    id: 'avg_attendance',
+    title: 'Institution live attendance',
+    value: '84.6%',
+    changeText: '↑ 4% vs last term',
+    changeType: 'positive',
+    icon: 'trending-up',
+  },
+  {
+    id: 'pending_tickets',
+    title: 'Open support tickets',
+    value: 2,
+    changeText: 'Requires faculty review',
+    changeType: 'alert',
+    icon: 'alert-circle',
+  },
+];
+
+export const initialAdminTasks: AdminTask[] = [
+  {
+    id: 'task_1',
+    title: 'Resolve quiz access permission ticket TKT-8492',
+    completed: false,
+    priority: 'High',
+    category: 'Support',
+    dueDate: 'Today, 05:00 PM',
+    createdAt: 'Aug 29, 2026',
+  },
+  {
+    id: 'task_2',
+    title: 'Review & grade Session 1 Research Design quiz submissions',
+    completed: false,
+    priority: 'High',
+    category: 'Grading',
+    dueDate: 'Tomorrow, 12:00 PM',
+    createdAt: 'Aug 28, 2026',
+  },
+  {
+    id: 'task_3',
+    title: 'Verify student enrollment records for Fall 2026 batch',
+    completed: false,
+    priority: 'Medium',
+    category: 'Curriculum',
+    dueDate: 'Sep 02, 2026',
+    createdAt: 'Aug 25, 2026',
+  },
+  {
+    id: 'task_4',
+    title: 'Upload lecture slides for Applied AI Vector Pipelines',
+    completed: false,
+    priority: 'Low',
+    category: 'Curriculum',
+    dueDate: 'Sep 05, 2026',
+    createdAt: 'Aug 27, 2026',
+  },
+  {
+    id: 'task_5',
+    title: 'Faculty sync on semester credit accreditation roadmap',
+    completed: true,
+    priority: 'Medium',
+    category: 'Faculty',
+    dueDate: 'Aug 20, 2026',
+    createdAt: 'Aug 18, 2026',
+  },
+];
+
+export const initialBroadcasts: BroadcastNotification[] = [
+  {
+    id: 'bc_1',
+    title: 'Session 2 Live Seminar link verified for Academic Information',
+    message: 'The interactive meeting link for Session 2 has been updated. Join via your student events calendar.',
+    priority: 'Urgent',
+    targetType: 'course',
+    targetValue: 'ACA-101',
+    sentAt: 'Aug 18, 2026 • 10:45 AM',
+    totalTargetCount: 42,
+    readCount: 38,
+  },
+  {
+    id: 'bc_2',
+    title: 'Scheduled Platform Maintenance this Saturday 02:00 AM UTC',
+    message: 'Cloud database indexing scheduled for 30 minutes. Video streaming and quiz submissions will pause briefly.',
+    priority: 'Important',
+    targetType: 'all',
+    sentAt: 'Aug 15, 2026 • 09:00 AM',
+    totalTargetCount: 148,
+    readCount: 126,
+  },
+  {
+    id: 'bc_3',
+    title: 'Official Fall 2026 Semester Guidelines Released',
+    message: 'Review student evaluation criteria, academic honor code, and milestone requirements in the curriculum handbook.',
+    priority: 'Normal',
+    targetType: 'all',
+    sentAt: 'Aug 01, 2026 • 08:30 AM',
+    totalTargetCount: 148,
+    readCount: 144,
+  },
+];
+
+export const initialImportedStudents: ImportedStudent[] = [
+  {
+    id: 'std_1',
+    fullName: 'Nikunj Sonda',
+    email: 'nikunj.sonda@aivalytics.com',
+    courseCode: 'ACA-101',
+    courseName: 'Academic Information & Governance',
+    term: 'Fall 2026',
+    enrolledAt: 'Aug 01, 2026',
+    status: 'Active',
+  },
+  {
+    id: 'std_2',
+    fullName: 'Rachel Adams',
+    email: 'rachel.adams@aivalytics.com',
+    courseCode: 'BRM-204',
+    courseName: 'Business Research Methodologies',
+    term: 'Fall 2026',
+    enrolledAt: 'Aug 03, 2026',
+    status: 'Active',
+  },
+  {
+    id: 'std_3',
+    fullName: 'David Miller',
+    email: 'david.m@aivalytics.com',
+    courseCode: 'AML-305',
+    courseName: 'Applied AI & Neural Predictive Analytics',
+    term: 'Fall 2026',
+    enrolledAt: 'Aug 05, 2026',
+    status: 'Active',
+  },
+  {
+    id: 'std_4',
+    fullName: 'Sophia Patel',
+    email: 'sophia.p@aivalytics.com',
+    courseCode: 'ACA-101',
+    courseName: 'Academic Information & Governance',
+    term: 'Fall 2026',
+    enrolledAt: 'Aug 07, 2026',
+    status: 'Active',
+  },
+  {
+    id: 'std_5',
+    fullName: 'Liam Chen',
+    email: 'liam.chen@aivalytics.com',
+    courseCode: 'BRM-204',
+    courseName: 'Business Research Methodologies',
+    term: 'Fall 2026',
+    enrolledAt: 'Aug 10, 2026',
+    status: 'Active',
+  },
+];
+
+export const sampleCsvTemplate = `fullName,email,courseCode,term
+Elena Rostova,elena.r@aivalytics.com,ACA-101,Fall 2026
+Marcus Thorne,marcus.t@aivalytics.com,BRM-204,Fall 2026
+Aisha Khan,aisha.k@aivalytics.com,AML-305,Fall 2026`;

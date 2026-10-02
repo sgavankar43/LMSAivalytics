@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, CheckCircle, Video, Ticket } from 'lucide-react';
+import { BookOpen, CheckCircle, Video, Ticket, Users, TrendingUp, AlertCircle } from 'lucide-react';
 import { MetricCardData } from '@/types';
 
 interface MetricCardProps {
@@ -17,6 +17,14 @@ export const MetricCard: React.FC<MetricCardProps> = ({ data }) => {
         return <Video className="w-4 h-4 text-[#3ECE92]" />;
       case 'ticket':
         return <Ticket className="w-4 h-4 text-[#3ECE92]" />;
+      case 'users':
+        return <Users className="w-4 h-4 text-[#3ECE92]" />;
+      case 'trending-up':
+        return <TrendingUp className="w-4 h-4 text-[#3ECE92]" />;
+      case 'alert-circle':
+        return <AlertCircle className="w-4 h-4 text-[#3ECE92]" />;
+      default:
+        return <BookOpen className="w-4 h-4 text-[#3ECE92]" />;
     }
   };
 
@@ -26,7 +34,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({ data }) => {
       case 'negative':
         return 'text-[#e05252]';
       case 'neutral':
-        return 'text-[#10b981]';
+        return 'text-gray-500';
       case 'positive':
       default:
         return 'text-[#10b981]';

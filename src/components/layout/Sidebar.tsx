@@ -15,6 +15,7 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
+  Users,
 } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { useAuth } from '@/context/AuthContext';
@@ -35,8 +36,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // If in mobile drawer, never show retracted state
   const collapsed = isMobileDrawer ? false : isCollapsed;
+  const isAdmin = user?.role === 'admin';
 
-  const navItems = [
+  const learnerNavItems = [
     {
       name: 'Dashboard',
       href: '/',
@@ -69,6 +71,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
       active: pathname.startsWith('/events'),
     },
   ];
+
+  const adminNavItems = [
+    {
+      name: 'Admin Dashboard',
+      href: '/',
+      icon: LayoutDashboard,
+      active: pathname === '/' || pathname === '/dashboard',
+    },
+    {
+      name: 'Students & CSV',
+      href: '/#students-section',
+      icon: Users,
+      badge: 'CSV',
+      active: false,
+    },
+    {
+      name: 'Courses & Cohorts',
+      href: '/courses',
+      icon: BookOpen,
+      active: pathname.startsWith('/courses'),
+    },
+    {
+      name: 'Support Tickets',
+      href: '/support',
+      icon: Ticket,
+      badge: 2,
+      active: pathname.startsWith('/support'),
+    },
+    {
+      name: 'Events & Seminars',
+      href: '/events',
+      icon: Calendar,
+      active: pathname.startsWith('/events'),
+    },
+  ];
+
+  const navItems = isAdmin ? adminNavItems : learnerNavItems;
 
   return (
     <aside

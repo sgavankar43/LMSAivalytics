@@ -16,7 +16,7 @@ export interface MetricCardData {
   value: number | string;
   changeText: string;
   changeType: 'positive' | 'neutral' | 'negative' | 'alert';
-  icon: 'book' | 'check-circle' | 'video' | 'ticket';
+  icon: 'book' | 'check-circle' | 'video' | 'ticket' | 'users' | 'trending-up' | 'alert-circle';
 }
 
 export type SessionType = 'RECORDING' | 'LIVE';
@@ -63,6 +63,7 @@ export interface Course {
   description: string;
   thumbnail?: string;
   nextLesson?: string;
+  enrolledStudentsCount?: number;
 }
 
 export interface SupportTicket {
@@ -77,6 +78,7 @@ export interface SupportTicket {
   lastUpdated: string;
   repliesCount: number;
   description: string;
+  studentName?: string;
 }
 
 export interface CertificateItem {
@@ -86,4 +88,38 @@ export interface CertificateItem {
   credentialId: string;
   status: 'Issued' | 'Pending';
   grade: string;
+}
+
+// Admin Specific Data Contracts
+export interface AdminTask {
+  id: string;
+  title: string;
+  completed: boolean;
+  priority: 'High' | 'Medium' | 'Low';
+  category: 'Grading' | 'Curriculum' | 'Support' | 'Faculty';
+  dueDate: string;
+  createdAt: string;
+}
+
+export interface BroadcastNotification {
+  id: string;
+  title: string;
+  message: string;
+  priority: 'Normal' | 'Important' | 'Urgent';
+  targetType: 'all' | 'course' | 'individual';
+  targetValue?: string;
+  sentAt: string;
+  totalTargetCount: number;
+  readCount: number;
+}
+
+export interface ImportedStudent {
+  id: string;
+  fullName: string;
+  email: string;
+  courseCode: string;
+  courseName: string;
+  term: string;
+  enrolledAt: string;
+  status: 'Active' | 'Pending';
 }

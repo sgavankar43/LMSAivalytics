@@ -1,0 +1,70 @@
+# AIvalytics LMS - Admin System Task Roadmap & Specification
+
+This document tracks all features, data structures, and implementation phases for the Admin Dashboard and Management Portal.
+
+---
+
+## 📋 Feature Breakdown & Scope
+
+### 1. Home Screen Role-Based Routing
+- [x] Detect `user.role === 'admin'` from AuthContext.
+- [x] If `admin`: Render the comprehensive **Admin Dashboard** on `/`.
+- [x] If `learner`: Render the Learner Dashboard.
+- [x] Role-adaptive Sidebar: Provide admin-specific navigation links with badges.
+
+---
+
+### 2. Statistical Data & Institution KPIs
+- [x] **Total Active Students**: Track total registered & imported learners.
+- [x] **Courses & Active Cohorts**: Total courses, active syllabi, and curriculum modules.
+- [x] **Institution-wide Live Attendance**: Average attendance rate across all live lectures.
+- [x] **Open Support Tickets**: Pending student tickets requiring faculty action.
+- [x] **Monthly Student Engagement Analytics**: Visual monthly bar/area comparison of attendance and quiz submissions.
+- [x] **Curriculum Completion Average**: Overall student progress indicator.
+
+---
+
+### 3. Upcoming Events Card
+- [x] Display upcoming live lectures, grading deadlines, and faculty reviews.
+- [x] Status tags: `Live Now` (animated indicator), `Upcoming Today`, `Scheduled`.
+- [x] Manual "Schedule Event" action with modal:
+  - Event title, course, date, time, duration, instructor, and meeting link.
+- [x] Direct "Launch Live Room" action.
+
+---
+
+### 4. Task Management Card
+- [x] Faculty & Coordinator Task Tracker.
+- [x] Manual Task Creation:
+  - Title, due date, category (Grading, Curriculum, Support, Faculty), priority (`High`, `Medium`, `Low`).
+- [x] Task Completion: Toggle checkmark with strikethrough styling and timestamp.
+- [x] Task Deletion: Remove task with instant reactivity.
+- [x] Status Filtering: `All`, `Pending`, `Completed`.
+
+---
+
+### 5. Notification & Broadcast Center
+- [x] Announcement composer: Title, message body, priority (`Normal`, `Important`, `Urgent`).
+- [x] Targeting & Filtration function:
+  - Filter by: `All Students`, `By Specific Course` (e.g. ACA-101, BRM-204, AML-305), or `Individual Email`.
+- [x] Real-time injection into the system notification bell for targeted users.
+- [x] Sent Broadcasts History Log with delivery recipient counts.
+
+---
+
+### 6. CSV Bulk User Import
+- [x] CSV Drag & Drop / File Upload interface.
+- [x] "Download Sample CSV" template generator (`fullName,email,courseCode,term`).
+- [x] In-browser CSV parsing with validation:
+  - Validates email syntax.
+  - Checks for duplicate emails.
+  - Verifies course code mapping.
+- [x] Table preview of parsed students before confirming import.
+- [x] Import execution: creates user records with student enrollment.
+- [x] Student Directory table with search, course filtering, and remove student action.
+
+---
+
+### 7. Course & Cohort Overview
+- [x] Course cards showing enrolled student counts, assigned instructor, and progress index.
+- [x] Quick support ticket resolver directly from the admin dashboard.
