@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { SessionItem } from '@/types';
+import { useAttendance } from '@/context/AttendanceContext';
+import { AdminAttendanceModal } from '@/components/admin/AdminAttendanceModal';
 import {
   Calendar,
   Video,
@@ -12,6 +14,7 @@ import {
   X,
   Play,
   Share2,
+  UserCheck,
 } from 'lucide-react';
 
 interface AdminUpcomingEventsCardProps {
@@ -23,7 +26,10 @@ export const AdminUpcomingEventsCard: React.FC<AdminUpcomingEventsCardProps> = (
   events,
   onAddEvent,
 }) => {
+  const { getSessionAttendance } = useAttendance();
   const [showModal, setShowModal] = useState(false);
+  const [selectedAttendanceSession, setSelectedAttendanceSession] = useState<SessionItem | null>(null);
+  const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
 
   // New Event Form State
   const [newTitle, setNewTitle] = useState('');
@@ -81,6 +87,8 @@ export const AdminUpcomingEventsCard: React.FC<AdminUpcomingEventsCardProps> = (
         <div className="divide-y divide-gray-100 max-h-[360px] overflow-y-auto">
           {events.map((event) => {
             const isLive = event.status === 'In Progress';
+            const attendance = getSessionAttendance(event.id);
+            const hasAttendance = attendance && attendance.totalEnrolled > 0;
 
             return (
               <div
@@ -103,6 +111,21 @@ export const AdminUpcomingEventsCard: React.FC<AdminUpcomingEventsCardProps> = (
                         {event.type}
                       </span>
                     )}
+
+                    {/* Attendance Badge Button */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAttendanceSession(event)}
+                      className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200/80 hover:bg-emerald-100 transition-colors"
+                      title="Click to view and update student attendance"
+                    >
+                      <UserCheck className="w-3 h-3 text-[#059669]" />
+                      <span>
+                        {hasAttendance
+                          ? `${attendance.presentCount + attendance.lateCount}/${attendance.totalEnrolled} Present (${attendance.attendanceRate}%)`
+                          : 'Mark Attendance'}
+                      </span>
+                    </button>
                   </div>
 
                   <h4 className="text-xs font-bold text-gray-900 truncate">
@@ -123,11 +146,21 @@ export const AdminUpcomingEventsCard: React.FC<AdminUpcomingEventsCardProps> = (
                   </div>
                 </div>
 
-                <div className="shrink-0 self-center">
+                <div className="shrink-0 self-center flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAttendanceSession(event)}
+                    className="px-2.5 py-1.5 rounded-xl text-xs font-semibold text-gray-700 hover:text-emerald-800 hover:bg-emerald-50 border border-gray-200 hover:border-emerald-300 transition-all flex items-center gap-1.5 shadow-2xs"
+                    title="Mark / Update Student Attendance"
+                  >
+                    <UserCheck className="w-3.5 h-3.5 text-[#3ECE92]" />
+                    <span className="hidden sm:inline">Attendance</span>
+                  </button>
+
                   {isLive ? (
                     <button
                       onClick={() => alert('Launching active live classroom for faculty!')}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#3ECE92] text-[#111614] hover:bg-[#34be83] flex items-center gap-1 transition-transform hover:scale-105"
+                      className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#3ECE92] text-[#111614] hover:bg-[#34be83] flex items-center gap-1 transition-transform hover:scale-105 shadow-sm"
                     >
                       <Video className="w-3 h-3 fill-current" />
                       <span>Join Room</span>
@@ -135,7 +168,7 @@ export const AdminUpcomingEventsCard: React.FC<AdminUpcomingEventsCardProps> = (
                   ) : (
                     <button
                       onClick={() => alert('Opening event link: ' + (event.meetingUrl || event.recordingUrl))}
-                      className="p-2 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                      className="p-2 rounded-xl text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors"
                       title="Open meeting room"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
@@ -268,6 +301,27 @@ export const AdminUpcomingEventsCard: React.FC<AdminUpcomingEventsCardProps> = (
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Admin Session Attendance Modal */}
+      <AdminAttendanceModal
+        isOpen={!!selectedAttendanceSession}
+        onClose={() => setSelectedAttendanceSession(null)}
+        session={selectedAttendanceSession}
+        onSuccess={(msg) => {
+          setFeedbackToast(msg);
+          setTimeout(() => setFeedbackToast(null), 4000);
+        }}
+      />
+
+      {/* Feedback Toast */}
+      {feedbackToast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-[#121614] text-white px-4 py-3 rounded-2xl shadow-2xl border border-gray-800 flex items-center gap-3 animate-in slide-in-from-bottom-5">
+          <div className="w-6 h-6 rounded-full bg-[#3ECE92]/20 flex items-center justify-center">
+            <UserCheck className="w-4 h-4 text-[#3ECE92]" />
+          </div>
+          <span className="text-xs font-medium">{feedbackToast}</span>
         </div>
       )}
     </div>

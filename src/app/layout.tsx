@@ -5,6 +5,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { SidebarProvider } from '@/context/SidebarContext';
 import { TestProvider } from '@/context/TestContext';
 import { ProjectSubmissionsProvider } from '@/context/ProjectSubmissionsContext';
+import { AttendanceProvider } from '@/context/AttendanceContext';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -38,7 +39,9 @@ export default function RootLayout({
         <AuthProvider>
           <SidebarProvider>
             <TestProvider>
-              <ProjectSubmissionsProvider>{children}</ProjectSubmissionsProvider>
+              <ProjectSubmissionsProvider>
+                <AttendanceProvider>{children}</AttendanceProvider>
+              </ProjectSubmissionsProvider>
             </TestProvider>
           </SidebarProvider>
         </AuthProvider>

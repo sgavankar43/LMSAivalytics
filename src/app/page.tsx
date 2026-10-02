@@ -16,11 +16,13 @@ import {
   mockRecentSessions,
 } from '@/data/mockData';
 import { useAuth } from '@/context/AuthContext';
+import { useAttendance } from '@/context/AttendanceContext';
 import Link from 'next/link';
 import { Calendar, ChevronDown, FileCheck, ArrowRight } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user, role, isLoading } = useAuth();
+  const { getStudentAttendance } = useAttendance();
   const [selectedRange, setSelectedRange] = useState('Aug 1 - Aug 31, 2026');
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -33,6 +35,10 @@ export default function DashboardPage() {
 
   const firstName = user?.name ? user.name.split(' ')[0] : 'Alex';
   const isAdmin = role === 'admin' || user?.role === 'admin';
+
+  // Dynamic live attendance calculation for the student
+  const studentEmail = user?.email || 'alex.morgan@aivalytics.com';
+  const studentAttendance = getStudentAttendance(studentEmail);
 
   if (isLoading) {
     return (
@@ -150,12 +156,12 @@ export default function DashboardPage() {
 
             <CircularProgressCard
               title="Live attendance"
-              percentage={82}
+              percentage={studentAttendance.percentage}
               legend={[
-                { label: 'Attended', value: '82%', color: '#3ECE92' },
-                { label: 'Missed', value: '18%', color: '#d1d5db' },
+                { label: 'Attended', value: `${studentAttendance.percentage}%`, color: '#3ECE92' },
+                { label: 'Missed', value: `${100 - studentAttendance.percentage}%`, color: '#d1d5db' },
               ]}
-              footerNote="Last 10 live sessions"
+              footerNote={`${studentAttendance.attendedSessions} of ${studentAttendance.totalSessions} live sessions attended`}
             />
           </div>
 

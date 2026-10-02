@@ -90,3 +90,34 @@ This document tracks all features, data structures, and implementation phases fo
   - Student submissions audit log (Student name, email, score, pass/fail status, timestamp).
   - Drilldown modal to inspect individual student submissions and scores per test.
 
+---
+
+### 9. Live Session Attendance Management System
+- [x] **Data Model & State Management (`AttendanceContext`)**:
+  - `SessionItem` tracking: ID, title, course, type, status, date, time, instructor, meeting/recording URL.
+  - `StudentAttendanceStatus`: `studentId`, `studentName`, `studentEmail`, `status: 'PRESENT' | 'ABSENT' | 'LATE'`, `markedAt`.
+  - `SessionAttendance`: `sessionId`, `sessionTitle`, `date`, `time`, `markedAt`, `records` dictionary.
+  - Reactive `localStorage` persistence and cross-session analytics.
+  - Seed attendance data for existing sessions (`sess_1` to `sess_6`) across enrolled learners (`Alex Morgan`, `Sarah Connor`, `David Miller`, `Emily Watson`, `Sophia Patel`, `Liam Chen`).
+- [x] **Admin Attendance Console**:
+  - Integrate into `AdminUpcomingEventsCard` on Admin Dashboard:
+    - Display attendance pill for each session (e.g., `5/6 Present (83%)` or `Mark Attendance`).
+    - Dedicated "Mark Attendance" / "Update Attendance" button on each session card.
+  - Attendance Roster Modal (`AdminAttendanceModal.tsx`):
+    - Session metadata header (Title, Date, Time, Course).
+    - Summary stat chips: Total Enrolled, Present count, Absent count, Attendance %.
+    - Quick actions: "Mark All Present" and "Mark All Absent".
+    - Interactive student roster: Toggle Present / Absent / Late for each student with color-coded feedback.
+    - Save Attendance action with instant notification feedback.
+  - Dynamic roster generation when Admin schedules a new session from the modal:
+    - Creates empty or pre-populated roster for the new session immediately.
+    - Allows marking attendance immediately or anytime during/after the live lecture.
+- [x] **Student Dashboard Attendance Card**:
+  - Rendered on the Student Home Dashboard (`/`).
+  - Directly reflects student's real calculated attendance percentage (e.g. `83%`, `5 of 6 live sessions attended`).
+  - No extraneous options or features on the student side (clean, read-only display).
+- [x] **Quality Assurance & Verification**:
+  - Verify attendance updates in real time when Admin marks Alex Morgan present or absent.
+  - Verify new scheduled sessions allow attendance marking and update student metrics accordingly.
+  - Run `npm run build` to confirm zero TypeScript errors (verified with Turbopack).
+

@@ -248,3 +248,45 @@ export interface ProjectSubmissionStats {
   approvedCount: number;
   revisionRequestedCount: number;
 }
+
+// Attendance Types
+export type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE';
+
+export interface StudentAttendanceRecord {
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  status: AttendanceStatus;
+  markedAt?: string;
+  notes?: string;
+}
+
+export interface SessionAttendance {
+  sessionId: string;
+  sessionTitle: string;
+  course: string;
+  date: string;
+  time: string;
+  records: Record<string, StudentAttendanceRecord>; // studentEmail -> record
+  totalEnrolled: number;
+  presentCount: number;
+  absentCount: number;
+  lateCount: number;
+  attendanceRate: number; // percentage (0 - 100)
+  lastUpdated?: string;
+}
+
+export interface StudentAttendanceStats {
+  studentEmail: string;
+  totalSessions: number;
+  attendedSessions: number;
+  missedSessions: number;
+  lateSessions: number;
+  percentage: number;
+  sessionDetails: Array<{
+    sessionId: string;
+    sessionTitle: string;
+    date: string;
+    status: AttendanceStatus;
+  }>;
+}

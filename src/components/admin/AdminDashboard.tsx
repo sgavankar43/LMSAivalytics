@@ -17,8 +17,8 @@ import {
   initialBroadcasts,
   initialImportedStudents,
 } from '@/data/adminMockData';
-import { mockRecentSessions } from '@/data/mockData';
 import { AdminTask, BroadcastNotification, ImportedStudent, SessionItem } from '@/types';
+import { useAttendance } from '@/context/AttendanceContext';
 import {
   BellRing,
   UserPlus,
@@ -30,12 +30,12 @@ import {
 
 export const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
+  const { sessions, addSession, overallInstitutionAttendance } = useAttendance();
 
   // State Management for Admin Operations
   const [tasks, setTasks] = useState<AdminTask[]>(initialAdminTasks);
   const [broadcasts, setBroadcasts] = useState<BroadcastNotification[]>(initialBroadcasts);
   const [students, setStudents] = useState<ImportedStudent[]>(initialImportedStudents);
-  const [events, setEvents] = useState<SessionItem[]>(mockRecentSessions);
 
   // Modals state
   const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
@@ -90,12 +90,8 @@ export const AdminDashboard: React.FC = () => {
 
   // Event handlers
   const handleAddEvent = (newEventData: Omit<SessionItem, 'id'>) => {
-    const newEvent: SessionItem = {
-      ...newEventData,
-      id: `evt_${Date.now()}`,
-    };
-    setEvents((prev) => [newEvent, ...prev]);
-    showToast(`Session "${newEvent.title}" scheduled and published.`);
+    const newEvent = addSession(newEventData);
+    showToast(`Session "${newEvent.title}" scheduled & attendance roster created.`);
   };
 
   // Broadcast handlers
@@ -133,6 +129,13 @@ export const AdminDashboard: React.FC = () => {
         ...metric,
         value: totalEnrolled,
         changeText: `+${students.length} from directory`,
+      };
+    }
+    if (metric.id === 'avg_attendance') {
+      return {
+        ...metric,
+        value: `${overallInstitutionAttendance}%`,
+        changeText: `Across ${sessions.length} live sessions`,
       };
     }
     return metric;
@@ -238,7 +241,7 @@ export const AdminDashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* Upcoming Live Seminars & Events */}
         <AdminUpcomingEventsCard
-          events={events}
+          events={sessions}
           onAddEvent={handleAddEvent}
         />
 
