@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { useAuth } from '@/context/AuthContext';
 import { useAttendance } from '@/context/AttendanceContext';
@@ -56,6 +56,30 @@ export default function AttendancePage() {
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [selectedStudentForHistory, setSelectedStudentForHistory] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Handle redirection from Dashboard (?action=schedule or ?session=sess_1)
+  const initialUrlHandled = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || initialUrlHandled.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get('action');
+    const sessionId = params.get('session');
+
+    if (action === 'schedule') {
+      setIsScheduleModalOpen(true);
+      initialUrlHandled.current = true;
+      window.history.replaceState({}, '', '/attendance');
+    } else if (sessionId && sessions.length > 0) {
+      const foundSession = sessions.find((s) => s.id === sessionId);
+      if (foundSession) {
+        setSelectedAttendanceSession(foundSession);
+        setActiveTab('sessions');
+        initialUrlHandled.current = true;
+        window.history.replaceState({}, '', '/attendance');
+      }
+    }
+  }, [sessions]);
 
   // New Event Schedule Form State
   const [newTitle, setNewTitle] = useState('');
