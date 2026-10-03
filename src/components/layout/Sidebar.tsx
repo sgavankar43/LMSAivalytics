@@ -117,12 +117,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       active: false,
     },
     {
-      name: 'Admin Profile',
-      href: '/profile',
-      icon: User,
-      active: pathname.startsWith('/profile'),
-    },
-    {
       name: 'Courses & Cohorts',
       href: '/courses',
       icon: BookOpen,
@@ -274,24 +268,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Bottom Section */}
       <div className={`pt-6 border-t border-[#eaedf0] ${collapsed ? 'px-1' : 'px-2'}`}>
         {!collapsed && (
-          <Link
-            href="/profile"
-            className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-gray-100/70 transition-colors mb-3 group border border-transparent hover:border-gray-200/60"
-            title="View User Profile & Certifications"
-          >
-            <div className="w-8 h-8 rounded-full bg-[#3ECE92] text-[#121614] flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-105 transition-transform shadow-2xs">
-              {user?.initials || 'AM'}
+          isAdmin ? (
+            <div className="flex items-center gap-2.5 p-2 rounded-xl bg-gray-50/80 border border-gray-100 mb-3">
+              <div className="w-8 h-8 rounded-full bg-[#121614] text-[#3ECE92] flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                {user?.initials || 'AF'}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-gray-900 truncate">
+                  {user?.name || 'Admin Faculty'}
+                </p>
+                <p className="text-[10px] text-purple-700 font-semibold capitalize truncate flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-600" />
+                  <span>Faculty / Administrator</span>
+                </p>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-gray-900 truncate group-hover:text-[#059669] transition-colors">
-                {user?.name || 'Alex Morgan'}
-              </p>
-              <p className="text-[10px] text-gray-400 capitalize truncate flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#3ECE92]" />
-                <span>{user?.role || 'Learner'} Account</span>
-              </p>
-            </div>
-          </Link>
+          ) : (
+            <Link
+              href="/profile"
+              className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-gray-100/70 transition-colors mb-3 group border border-transparent hover:border-gray-200/60"
+              title="View User Profile & Certifications"
+            >
+              <div className="w-8 h-8 rounded-full bg-[#3ECE92] text-[#121614] flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-105 transition-transform shadow-2xs">
+                {user?.initials || 'AM'}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-gray-900 truncate group-hover:text-[#059669] transition-colors">
+                  {user?.name || 'Alex Morgan'}
+                </p>
+                <p className="text-[10px] text-gray-400 capitalize truncate flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#3ECE92]" />
+                  <span>Learner Profile</span>
+                </p>
+              </div>
+            </Link>
+          )
         )}
 
         {collapsed ? (

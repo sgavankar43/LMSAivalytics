@@ -165,20 +165,22 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
                 </div>
               </div>
 
-              {/* Direct Profile Link */}
-              <div className="p-1 border-b border-gray-100 mb-1">
-                <Link
-                  href="/profile"
-                  onClick={() => setShowProfileMenu(false)}
-                  className="w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold text-gray-800 hover:bg-[#e8f8f0] hover:text-[#059669] transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <User className="w-3.5 h-3.5 text-[#3ECE92]" />
-                    <span>My Profile & Certifications</span>
-                  </div>
-                  <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-                </Link>
-              </div>
+              {/* Direct Profile Link (Learners only) */}
+              {user?.role !== 'admin' && (
+                <div className="p-1 border-b border-gray-100 mb-1">
+                  <Link
+                    href="/profile"
+                    onClick={() => setShowProfileMenu(false)}
+                    className="w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold text-gray-800 hover:bg-[#e8f8f0] hover:text-[#059669] transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <User className="w-3.5 h-3.5 text-[#3ECE92]" />
+                      <span>My Profile & Certifications</span>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+                  </Link>
+                </div>
+              )}
 
               {/* Role Switcher Demo Control */}
               <div className="px-2 py-1.5">

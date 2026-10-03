@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
 import { useAuth } from '@/context/AuthContext';
 import { useAttendance } from '@/context/AttendanceContext';
@@ -36,6 +37,16 @@ import {
 export default function ProfilePage() {
   const { user } = useAuth();
   const { getStudentAttendance } = useAttendance();
+  const router = useRouter();
+
+  const isAdmin = user?.role === 'admin';
+
+  // Redirect admin users to the Admin Dashboard
+  useEffect(() => {
+    if (isAdmin) {
+      router.replace('/');
+    }
+  }, [isAdmin, router]);
 
   // Modal states
   const [selectedCertificate, setSelectedCertificate] = useState<CertificateItem | null>(null);
@@ -49,7 +60,28 @@ export default function ProfilePage() {
 
   const studentEmail = user?.email || 'alex.morgan@aivalytics.com';
   const attendanceStats = getStudentAttendance(studentEmail);
-  const isAdmin = user?.role === 'admin';
+
+  if (isAdmin) {
+    return (
+      <AppShell>
+        <div className="flex flex-col items-center justify-center min-h-[55vh] text-center p-6">
+          <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mb-3 border border-purple-100">
+            <ShieldCheck className="w-6 h-6" />
+          </div>
+          <h2 className="text-lg font-bold text-gray-900">Administrator Console</h2>
+          <p className="text-xs text-gray-500 mt-1 max-w-sm">
+            Student academic profiles and credentials are reserved for learners. Redirecting to Admin Dashboard...
+          </p>
+          <Link
+            href="/"
+            className="mt-4 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#121614] hover:bg-black transition-colors"
+          >
+            Go to Admin Dashboard
+          </Link>
+        </div>
+      </AppShell>
+    );
+  }
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -110,7 +142,7 @@ export default function ProfilePage() {
               <span className="text-gray-900 font-medium">My Profile & Credentials</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#111614]">
-              {isAdmin ? 'Faculty & Administrator Profile' : 'Student Profile & Academic Standing'}
+              Student Profile & Academic Standing
             </h1>
             <p className="text-xs sm:text-sm text-gray-500 mt-1">
               Manage your personal record, enrolled course syllabi, and official executive certifications.
@@ -166,31 +198,18 @@ export default function ProfilePage() {
                     {user?.name || 'Alex Morgan'}
                   </h2>
 
-                  <span
-                    className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full capitalize ${
-                      isAdmin
-                        ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                        : 'bg-[#e8f8f0] text-[#059669] border border-[#d1f4e2]'
-                    }`}
-                  >
-                    {isAdmin ? (
-                      <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />
-                    ) : (
-                      <GraduationCap className="w-3.5 h-3.5 text-[#059669]" />
-                    )}
-                    <span>{user?.role || 'Learner'} Account</span>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full capitalize bg-[#e8f8f0] text-[#059669] border border-[#d1f4e2]">
+                    <GraduationCap className="w-3.5 h-3.5 text-[#059669]" />
+                    <span>Learner Account</span>
                   </span>
 
                   <span className="text-[11px] font-mono text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-md border border-gray-200">
-                    ID: {user?.studentId || (isAdmin ? 'AIV-FAC-2026-004' : 'AIV-STD-2026-081')}
+                    ID: {user?.studentId || 'AIV-STD-2026-081'}
                   </span>
                 </div>
 
                 <p className="text-xs sm:text-sm font-medium text-gray-700 leading-snug">
-                  {user?.headline ||
-                    (isAdmin
-                      ? 'Director of Academic Affairs & AI Curriculum Lead'
-                      : 'AI-Native Project Manager & Operations Specialist')}
+                  {user?.headline || 'AI-Native Project Manager & Operations Specialist'}
                 </p>
 
                 <p className="text-xs text-gray-500 max-w-2xl leading-relaxed pt-1">
