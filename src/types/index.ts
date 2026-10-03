@@ -8,6 +8,15 @@ export interface User {
   initials: string;
   role: UserRole;
   term?: string;
+  headline?: string;
+  phone?: string;
+  location?: string;
+  cohort?: string;
+  bio?: string;
+  studentId?: string;
+  department?: string;
+  joinedDate?: string;
+  gpa?: string;
 }
 
 export interface MetricCardData {
@@ -88,6 +97,10 @@ export interface CertificateItem {
   credentialId: string;
   status: 'Issued' | 'Pending';
   grade: string;
+  skills?: string[];
+  description?: string;
+  issuer?: string;
+  program?: string;
 }
 
 // Admin Specific Data Contracts

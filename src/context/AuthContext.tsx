@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '@/types';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { mockUser, mockAdminUser } from '@/data/mockData';
 
 interface AuthContextType {
   user: User | null;
@@ -14,12 +15,23 @@ interface AuthContextType {
   signUp: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   switchRole: (role: UserRole) => void;
+  updateUser: (updatedData: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('aivalytics_active_user');
+        if (saved) return JSON.parse(saved);
+      } catch (err) {
+        console.error('Error loading saved user', err);
+      }
+    }
+    return mockUser;
+  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const router = useRouter();
 
@@ -54,8 +66,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function initSupabaseSession() {
       if (!isSupabaseConfigured || !supabase) {
-        console.warn('Supabase is not configured yet. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local');
-        setUser(null);
         setIsLoading(false);
         return;
       }
@@ -150,13 +160,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('Supabase signOut error:', err);
       }
     }
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('aivalytics_active_user');
+    }
     setUser(null);
     router.replace('/login');
   };
 
   const switchRole = (newRole: UserRole) => {
-    if (!user) return;
-    setUser({ ...user, role: newRole });
+    const baseUser = newRole === 'admin' ? mockAdminUser : mockUser;
+    setUser(baseUser);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('aivalytics_active_user', JSON.stringify(baseUser));
+    }
+  };
+
+  const updateUser = (updatedData: Partial<User>) => {
+    setUser((prev) => {
+      const current = prev || mockUser;
+      const updated = { ...current, ...updatedData };
+      if (updatedData.name) {
+        const initials = updatedData.name
+          .trim()
+          .split(' ')
+          .filter(Boolean)
+          .map((n) => n[0])
+          .join('')
+          .toUpperCase()
+          .slice(0, 2);
+        updated.initials = initials || current.initials;
+      }
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('aivalytics_active_user', JSON.stringify(updated));
+      }
+      return updated;
+    });
   };
 
   return (
@@ -170,6 +208,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signUp,
         signOut,
         switchRole,
+        updateUser,
       }}
     >
       {children}

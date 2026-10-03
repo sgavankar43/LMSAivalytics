@@ -18,6 +18,7 @@ import {
   Users,
   FileCheck,
   UserCheck,
+  User,
 } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { useAuth } from '@/context/AuthContext';
@@ -59,6 +60,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: FileCheck,
       badge: 'Projects',
       active: pathname.startsWith('/assessments') || pathname.startsWith('/tests'),
+    },
+    {
+      name: 'My Profile',
+      href: '/profile',
+      icon: User,
+      active: pathname.startsWith('/profile'),
     },
     {
       name: 'Support',
@@ -108,6 +115,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Users,
       badge: 'CSV',
       active: false,
+    },
+    {
+      name: 'Admin Profile',
+      href: '/profile',
+      icon: User,
+      active: pathname.startsWith('/profile'),
     },
     {
       name: 'Courses & Cohorts',
@@ -261,11 +274,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Bottom Section */}
       <div className={`pt-6 border-t border-[#eaedf0] ${collapsed ? 'px-1' : 'px-2'}`}>
         {!collapsed && (
-          <div className="flex items-center justify-between mb-4 px-2">
-            <div className="text-xs text-gray-500">
-              Role: <span className="capitalize font-semibold text-gray-700">{user?.role || 'Learner'}</span>
+          <Link
+            href="/profile"
+            className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-gray-100/70 transition-colors mb-3 group border border-transparent hover:border-gray-200/60"
+            title="View User Profile & Certifications"
+          >
+            <div className="w-8 h-8 rounded-full bg-[#3ECE92] text-[#121614] flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-105 transition-transform shadow-2xs">
+              {user?.initials || 'AM'}
             </div>
-          </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-gray-900 truncate group-hover:text-[#059669] transition-colors">
+                {user?.name || 'Alex Morgan'}
+              </p>
+              <p className="text-[10px] text-gray-400 capitalize truncate flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#3ECE92]" />
+                <span>{user?.role || 'Learner'} Account</span>
+              </p>
+            </div>
+          </Link>
         )}
 
         {collapsed ? (
