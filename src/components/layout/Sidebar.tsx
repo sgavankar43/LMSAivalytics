@@ -110,11 +110,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       active: pathname.startsWith('/assessments') || pathname.startsWith('/tests'),
     },
     {
-      name: 'Students & CSV',
-      href: '/#students-section',
+      name: 'Enrollment',
+      href: '/enrollment',
       icon: Users,
-      badge: 'CSV',
-      active: false,
+      badge: 'Roster',
+      active: pathname.startsWith('/enrollment'),
     },
     {
       name: 'Courses & Cohorts',

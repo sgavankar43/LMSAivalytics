@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { useAttendance } from '@/context/AttendanceContext';
+import { useEnrollment } from '@/context/EnrollmentContext';
 import { MetricCard } from '@/components/dashboard/MetricCard';
 import { AdminTaskCard } from '@/components/admin/AdminTaskCard';
 import { AdminUpcomingEventsCard } from '@/components/admin/AdminUpcomingEventsCard';
 import { BroadcastCenterModal } from '@/components/admin/BroadcastCenterModal';
-import { CsvUserImportModal } from '@/components/admin/CsvUserImportModal';
-import { AdminStudentsTable } from '@/components/admin/AdminStudentsTable';
 import { AdminEngagementChart } from '@/components/admin/AdminEngagementChart';
 import { AdminQuizStatsCard } from '@/components/admin/AdminQuizStatsCard';
 import { CsvQuizUploadModal } from '@/components/admin/CsvQuizUploadModal';
@@ -15,10 +16,8 @@ import {
   initialAdminMetrics,
   initialAdminTasks,
   initialBroadcasts,
-  initialImportedStudents,
 } from '@/data/adminMockData';
-import { AdminTask, BroadcastNotification, ImportedStudent, SessionItem } from '@/types';
-import { useAttendance } from '@/context/AttendanceContext';
+import { AdminTask, BroadcastNotification, SessionItem } from '@/types';
 import {
   BellRing,
   UserPlus,
@@ -31,15 +30,14 @@ import {
 export const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
   const { sessions, addSession, overallInstitutionAttendance } = useAttendance();
+  const { totalEnrolled, students } = useEnrollment();
 
   // State Management for Admin Operations
   const [tasks, setTasks] = useState<AdminTask[]>(initialAdminTasks);
   const [broadcasts, setBroadcasts] = useState<BroadcastNotification[]>(initialBroadcasts);
-  const [students, setStudents] = useState<ImportedStudent[]>(initialImportedStudents);
 
   // Modals state
   const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
 
   // Toast feedback state
@@ -110,21 +108,9 @@ export const AdminDashboard: React.FC = () => {
     );
   };
 
-  // CSV Import handlers
-  const handleImportStudents = (newStudents: ImportedStudent[]) => {
-    setStudents((prev) => [...newStudents, ...prev]);
-    showToast(`Successfully enrolled ${newStudents.length} students via CSV.`);
-  };
-
-  const handleDeleteStudent = (id: string) => {
-    setStudents((prev) => prev.filter((s) => s.id !== id));
-    showToast(`Student enrollment record deleted.`);
-  };
-
   // Dynamic KPI Metrics computation
   const dynamicMetrics = initialAdminMetrics.map((metric) => {
     if (metric.id === 'total_students') {
-      const totalEnrolled = 143 + students.length;
       return {
         ...metric,
         value: totalEnrolled,
@@ -185,15 +171,16 @@ export const AdminDashboard: React.FC = () => {
             <span>Broadcast Notice</span>
           </button>
 
-          {/* Import CSV Button */}
-          <button
-            onClick={() => setIsImportModalOpen(true)}
-            id="admin-import-csv-btn"
+          {/* Enrollment Directory Button */}
+          <Link
+            href="/enrollment"
+            id="admin-enrollment-btn"
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 shadow-xs transition-all duration-150 active:scale-95"
+            title="View Student Enrollment & Cohort Directory"
           >
             <UserPlus className="w-4 h-4 text-gray-500" />
-            <span>Import CSV</span>
-          </button>
+            <span>Enrollment</span>
+          </Link>
 
           {/* Date Range Selector */}
           <div className="relative">
@@ -266,28 +253,12 @@ export const AdminDashboard: React.FC = () => {
         <AdminEngagementChart />
       </div>
 
-      {/* 5. Enrolled Students Directory (CSV Import & Manual Management) */}
-      <div id="students-section">
-        <AdminStudentsTable
-          students={students}
-          onOpenImportModal={() => setIsImportModalOpen(true)}
-          onDeleteStudent={handleDeleteStudent}
-        />
-      </div>
-
       {/* Broadcast Center Modal */}
       <BroadcastCenterModal
         isOpen={isBroadcastModalOpen}
         onClose={() => setIsBroadcastModalOpen(false)}
         broadcasts={broadcasts}
         onSendBroadcast={handleSendBroadcast}
-      />
-
-      {/* CSV User Import Modal */}
-      <CsvUserImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        onImportStudents={handleImportStudents}
       />
 
       {/* CSV Quiz Upload Modal */}
