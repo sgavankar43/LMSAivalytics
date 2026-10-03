@@ -52,16 +52,22 @@ This document tracks all features, data structures, and implementation phases fo
 
 ---
 
-### 6. CSV Bulk User Import
-- [x] CSV Drag & Drop / File Upload interface.
-- [x] "Download Sample CSV" template generator (`fullName,email,courseCode,term`).
-- [x] In-browser CSV parsing with validation:
-  - Validates email syntax.
-  - Checks for duplicate emails.
-  - Verifies course code mapping.
-- [x] Table preview of parsed students before confirming import.
-- [x] Import execution: creates user records with student enrollment.
-- [x] Student Directory table with search, course filtering, and remove student action.
+### 6. Student Enrollment & Cohort Directory (`/enrollment`)
+- [x] Dedicated **Enrollment Management Portal** on `/enrollment` (migrated off the Admin Dashboard).
+- [x] Renamed sidebar navigation item from "Students & CSV" to **"Enrollment"** (`/enrollment`, badge: `Roster`).
+- [x] **`EnrollmentContext`**:
+  - Global client state for student admissions and cohort allocations with `localStorage` persistence.
+  - Reactive computed capacity metrics (Total enrolled, active count, pending activation, active courses).
+  - One-click **"Export Roster CSV"** generator.
+- [x] **Enrollment Directory Table**:
+  - Filterable by course (`All`, `ACA-101`, `BRM-204`, `AML-305`), status (`Active`, `Pending`), and live search query.
+  - Interactive status toggle (`Active` &harr; `Pending`) with instant reactive toast feedback.
+  - Remove student enrollment action.
+- [x] **CSV Bulk User Import**:
+  - Drag-and-drop CSV parser with sample template downloader.
+  - Email syntax and course code validation with error boundary preview.
+  - Auto-open on deep-link (`/enrollment?action=import`).
+- [x] Cleaned Admin Dashboard: Removed redundant local directory table and local import modal (zero dead code).
 
 ---
 
