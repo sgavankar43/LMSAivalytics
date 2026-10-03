@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {
   Search,
   Bell,
+  BellRing,
   Menu,
   ChevronDown,
   ShieldCheck,
@@ -14,9 +15,11 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
+  X,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSidebar } from '@/context/SidebarContext';
+import { useNotifications } from '@/context/NotificationContext';
 
 interface HeaderProps {
   onOpenMobile?: () => void;
@@ -25,33 +28,19 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
   const { user, signOut, switchRole } = useAuth();
   const { isCollapsed, toggleSidebar } = useSidebar();
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    dismissNotification,
+    activeAlert,
+    dismissAlert,
+  } = useNotifications();
+
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-
-  const notifications = [
-    {
-      id: 1,
-      title: 'Session Live Now',
-      desc: 'Session 2: Grading & Evaluation is currently active in Academic Information.',
-      time: 'Just now',
-      unread: true,
-    },
-    {
-      id: 2,
-      title: 'Ticket Updated',
-      desc: 'Faculty responded to ticket TKT-8492 on Research Design quiz access.',
-      time: '2 hours ago',
-      unread: true,
-    },
-    {
-      id: 3,
-      title: 'Certificate Ready',
-      desc: 'Foundations of Modern Data Literacy certificate is available to download.',
-      time: '1 day ago',
-      unread: false,
-    },
-  ];
 
   return (
     <header className="sticky top-0 z-20 bg-[#f8faf9]/95 backdrop-blur-md border-b border-[#eaedf0] px-4 sm:px-8 py-3.5 flex items-center justify-between">
@@ -104,36 +93,160 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
             }}
             className="relative p-2 rounded-full text-gray-600 hover:text-gray-900 hover:bg-[#ebedec] transition-colors"
             aria-label="Notifications"
+            title={`${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}`}
           >
             <Bell className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#3ECE92] rounded-full ring-2 ring-white" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white animate-pulse shadow-xs">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </button>
 
           {showNotifications && (
             <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-gray-100 py-3 z-50 animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-4 pb-2 border-b border-gray-100 flex items-center justify-between">
-                <span className="font-semibold text-sm text-gray-900">Notifications</span>
-                <span className="text-xs text-[#059669] font-medium bg-[#e8f8f0] px-2 py-0.5 rounded-full">
-                  2 unread
-                </span>
+              <div className="px-4 pb-2.5 border-b border-gray-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm text-gray-900">Notifications & Bulletins</span>
+                  {unreadCount > 0 ? (
+                    <span className="text-[10px] font-bold bg-red-50 text-red-600 px-2 py-0.5 rounded-full border border-red-200">
+                      {unreadCount} unread
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                      All caught up
+                    </span>
+                  )}
+                </div>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={markAllAsRead}
+                    className="text-[11px] font-semibold text-[#059669] hover:text-[#047857] hover:underline"
+                  >
+                    Mark all read
+                  </button>
+                )}
               </div>
-              <div className="divide-y divide-gray-50 max-h-72 overflow-y-auto">
-                {notifications.map((n) => (
-                  <div key={n.id} className="p-3.5 hover:bg-gray-50 transition-colors flex gap-3 text-left">
-                    <div className="mt-0.5">
-                      <div className="w-2 h-2 rounded-full bg-[#3ECE92]" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-gray-900">{n.title}</p>
-                      <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">{n.desc}</p>
-                      <span className="text-[10px] text-gray-400 mt-1 block">{n.time}</span>
-                    </div>
+
+              <div className="divide-y divide-gray-50 max-h-80 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="p-6 text-center text-gray-400">
+                    <Bell className="w-6 h-6 mx-auto mb-1.5 opacity-40 text-gray-300" />
+                    <p className="text-xs font-medium">No announcements or alerts right now</p>
                   </div>
-                ))}
+                ) : (
+                  notifications.map((n) => {
+                    const isUrgent = n.priority === 'Urgent';
+                    const isImportant = n.priority === 'Important';
+
+                    return (
+                      <div
+                        key={n.id}
+                        onClick={() => markAsRead(n.id)}
+                        className={`p-3.5 hover:bg-gray-50/90 transition-colors flex items-start gap-3 text-left cursor-pointer group relative ${
+                          n.unread ? 'bg-emerald-50/30' : ''
+                        }`}
+                      >
+                        {/* Status Dot */}
+                        <div className="mt-1 shrink-0">
+                          {isUrgent ? (
+                            <span className="w-2.5 h-2.5 rounded-full bg-red-500 block ring-4 ring-red-100" />
+                          ) : isImportant ? (
+                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 block ring-4 ring-amber-100" />
+                          ) : (
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#3ECE92] block ring-4 ring-emerald-100" />
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className={`text-xs font-bold ${n.unread ? 'text-gray-900' : 'text-gray-600'}`}>
+                              {n.title}
+                            </p>
+                            <span
+                              className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded ${
+                                isUrgent
+                                  ? 'bg-red-100 text-red-700'
+                                  : isImportant
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-emerald-100 text-emerald-800'
+                              }`}
+                            >
+                              {n.priority}
+                            </span>
+                          </div>
+
+                          <p className="text-xs text-gray-600 mt-1 leading-relaxed break-words">
+                            {n.message}
+                          </p>
+
+                          <div className="flex items-center justify-between text-[10px] text-gray-400 mt-1.5">
+                            <span>{n.time}</span>
+                            {n.unread && (
+                              <span className="text-[#059669] font-bold text-[9px] bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                New
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Dismiss Notification */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            dismissNotification(n.id);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-gray-700 transition-opacity"
+                          title="Dismiss notification"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           )}
         </div>
+
+        {/* Real-time Floating Broadcast Alert Banner */}
+        {activeAlert && (
+          <div className="fixed top-18 right-4 sm:right-6 z-50 max-w-sm w-full bg-[#121614] text-white p-4 rounded-2xl shadow-2xl border border-gray-700 animate-in slide-in-from-top-4 flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-[#3ECE92]/20 flex items-center justify-center shrink-0 mt-0.5">
+              <BellRing className="w-4 h-4 text-[#3ECE92]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-mono font-bold text-[#3ECE92] uppercase tracking-wider">
+                  New Announcement
+                </span>
+                <span
+                  className={`text-[9px] font-bold px-1.5 py-0.2 rounded uppercase ${
+                    activeAlert.priority === 'Urgent'
+                      ? 'bg-red-500/20 text-red-300'
+                      : activeAlert.priority === 'Important'
+                      ? 'bg-amber-500/20 text-amber-300'
+                      : 'bg-emerald-500/20 text-emerald-300'
+                  }`}
+                >
+                  {activeAlert.priority}
+                </span>
+              </div>
+              <p className="text-xs font-bold text-white mt-1 leading-snug">{activeAlert.title}</p>
+              <p className="text-xs text-gray-300 mt-0.5 leading-relaxed line-clamp-3">
+                {activeAlert.message}
+              </p>
+            </div>
+            <button
+              onClick={dismissAlert}
+              className="p-1 text-gray-400 hover:text-white transition-colors"
+              title="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* User Pill Badge */}
         <div className="relative">

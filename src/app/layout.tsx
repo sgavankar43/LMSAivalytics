@@ -7,6 +7,7 @@ import { TestProvider } from '@/context/TestContext';
 import { ProjectSubmissionsProvider } from '@/context/ProjectSubmissionsContext';
 import { AttendanceProvider } from '@/context/AttendanceContext';
 import { EnrollmentProvider } from '@/context/EnrollmentContext';
+import { NotificationProvider } from '@/context/NotificationContext';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -42,7 +43,9 @@ export default function RootLayout({
             <TestProvider>
               <ProjectSubmissionsProvider>
                 <AttendanceProvider>
-                  <EnrollmentProvider>{children}</EnrollmentProvider>
+                  <EnrollmentProvider>
+                    <NotificationProvider>{children}</NotificationProvider>
+                  </EnrollmentProvider>
                 </AttendanceProvider>
               </ProjectSubmissionsProvider>
             </TestProvider>

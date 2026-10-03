@@ -12,10 +12,10 @@ import { BroadcastCenterModal } from '@/components/admin/BroadcastCenterModal';
 import { AdminEngagementChart } from '@/components/admin/AdminEngagementChart';
 import { AdminQuizStatsCard } from '@/components/admin/AdminQuizStatsCard';
 import { CsvQuizUploadModal } from '@/components/admin/CsvQuizUploadModal';
+import { useNotifications } from '@/context/NotificationContext';
 import {
   initialAdminMetrics,
   initialAdminTasks,
-  initialBroadcasts,
 } from '@/data/adminMockData';
 import { AdminTask, BroadcastNotification, SessionItem } from '@/types';
 import {
@@ -31,10 +31,10 @@ export const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
   const { sessions, addSession, overallInstitutionAttendance } = useAttendance();
   const { totalEnrolled, students } = useEnrollment();
+  const { broadcasts, sendBroadcast } = useNotifications();
 
   // State Management for Admin Operations
   const [tasks, setTasks] = useState<AdminTask[]>(initialAdminTasks);
-  const [broadcasts, setBroadcasts] = useState<BroadcastNotification[]>(initialBroadcasts);
 
   // Modals state
   const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
@@ -96,13 +96,7 @@ export const AdminDashboard: React.FC = () => {
   const handleSendBroadcast = (
     newBcData: Omit<BroadcastNotification, 'id' | 'sentAt' | 'readCount'>
   ) => {
-    const newBroadcast: BroadcastNotification = {
-      ...newBcData,
-      id: `bc_${Date.now()}`,
-      sentAt: 'Just now',
-      readCount: 0,
-    };
-    setBroadcasts((prev) => [newBroadcast, ...prev]);
+    const newBroadcast = sendBroadcast(newBcData);
     showToast(
       `Broadcast "${newBroadcast.title.slice(0, 28)}..." dispatched to ${newBroadcast.totalTargetCount} learners!`
     );
