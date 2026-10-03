@@ -121,3 +121,19 @@ This document tracks all features, data structures, and implementation phases fo
   - Verify new scheduled sessions allow attendance marking and update student metrics accordingly.
   - Run `npm run build` to confirm zero TypeScript errors (verified with Turbopack).
 
+---
+
+### 10. User Profile & Credential Management Scope
+- [x] **Learner Profile (`/profile`)**:
+  - Student identity hero (Name, student ID, bio, contact details, cohort).
+  - Academic KPIs: Cumulative GPA, live attendance %, active syllabi, earned certifications.
+  - "My Courses" section with progress tracking and direct resume link.
+  - "Program Certifications" section with official verified certificates and interactive modal.
+  - Real-time "Edit Profile" modal.
+- [x] **Admin Exclusion**:
+  - Profile link removed from Admin sidebar navigation items.
+  - Admin sidebar footer displays static role presentation card (not linked to `/profile`).
+  - Header profile dropdown hides profile link for admin role.
+  - Direct navigation to `/profile` by an admin automatically redirects back to `/` (Admin Dashboard).
+
+
