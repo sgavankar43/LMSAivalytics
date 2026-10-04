@@ -51,7 +51,6 @@ model User {
   updatedAt     DateTime        @updatedAt
 
   enrollments   Enrollment[]
-  tickets       SupportTicket[]
   attendance    AttendanceRecord[]
   certificates  Certificate[]
 }
@@ -69,7 +68,6 @@ model Course {
   modules       CourseModule[]
   sessions      Session[]
   enrollments   Enrollment[]
-  tickets       SupportTicket[]
   certificates  Certificate[]
 }
 
@@ -131,19 +129,31 @@ model AttendanceRecord {
   durationMin Int
 }
 
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String?  // null if global broadcast
+  title     String
+  message   String
+  type      String   // "info" | "warning" | "success" | "alert"
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
 model SupportTicket {
-  id          String        @id @default(uuid())
-  ticketCode  String        @unique
+  id          String   @id @default(uuid())
   userId      String
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  courseId    String?
-  course      Course?       @relation(fields: [courseId], references: [id], onDelete: SetNull)
   subject     String
   description String
-  status      TicketStatus  @default(OPEN)
-  priority    Priority      @default(MEDIUM)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  status      String   @default("OPEN") // "OPEN" | "RESOLVED"
+  createdAt   DateTime @default(now())
+}
+
+model ClassSession {
+  id        String   @id @default(uuid())
+  title     String
+  status    String   // "SCHEDULED" | "LIVE" | "ENDED"
+  startTime DateTime
+  createdAt DateTime @default(now())
 }
 
 model Certificate {

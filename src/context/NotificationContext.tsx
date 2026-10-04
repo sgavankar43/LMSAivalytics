@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import { BroadcastNotification } from '@/types';
 import { initialBroadcasts } from '@/data/adminMockData';
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/lib/supabase/client';
 
 export interface LMSNotification {
   id: string;
@@ -12,7 +13,7 @@ export interface LMSNotification {
   time: string;
   priority: 'Normal' | 'Important' | 'Urgent';
   unread: boolean;
-  type: 'broadcast' | 'system' | 'session' | 'ticket';
+  type: 'broadcast' | 'system' | 'session' | 'ticket' | 'info' | 'warning' | 'success' | 'alert';
   targetType: 'all' | 'course' | 'individual';
   targetValue?: string;
   broadcastId?: string;
@@ -37,44 +38,41 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 const BROADCASTS_STORAGE_KEY = 'aivalytics_broadcasts_v1';
 const READ_NOTIFICATIONS_KEY = 'aivalytics_read_notifications_v1';
 const DISMISSED_NOTIFICATIONS_KEY = 'aivalytics_dismissed_notifications_v1';
-const CHANNEL_NAME = 'aivalytics_lms_broadcast_channel';
+const CHANNEL_NAME = 'realtime:notifications';
 
-// Default static system notifications
-const initialSystemNotifications: LMSNotification[] = [
-  {
-    id: 'sys_notif_1',
-    title: 'Session Live Now',
-    message: 'Session 2: Grading & Evaluation is currently active in Academic Information.',
-    time: 'Just now',
-    priority: 'Urgent',
-    unread: true,
-    type: 'session',
-    targetType: 'all',
-    createdAt: Date.now() - 5 * 60 * 1000,
-  },
-  {
-    id: 'sys_notif_2',
-    title: 'Support Ticket Updated',
-    message: 'Faculty responded to ticket TKT-8492 on Research Design quiz access.',
-    time: '2 hours ago',
-    priority: 'Important',
-    unread: true,
-    type: 'ticket',
-    targetType: 'all',
-    createdAt: Date.now() - 2 * 60 * 60 * 1000,
-  },
-  {
-    id: 'sys_notif_3',
-    title: 'Certificate Ready to Download',
-    message: 'Foundations of Modern Data Literacy certificate is verified & available to download.',
-    time: '1 day ago',
-    priority: 'Normal',
-    unread: false,
-    type: 'system',
-    targetType: 'all',
-    createdAt: Date.now() - 24 * 60 * 60 * 1000,
-  },
-];
+// Helper for human-readable relative time
+function formatTimeAgo(date: Date): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (isNaN(seconds) || seconds < 30) return 'Just now';
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+// Map Postgres row to LMSNotification
+function mapDbRowToNotif(row: any, readIds: Record<string, boolean>): LMSNotification {
+  const isAlert = row.type === 'alert' || row.type === 'warning';
+  const priority: 'Normal' | 'Important' | 'Urgent' =
+    row.type === 'alert' ? 'Urgent' : row.type === 'warning' ? 'Important' : 'Normal';
+
+  return {
+    id: row.id,
+    title: row.title,
+    message: row.message,
+    time: row.createdAt ? formatTimeAgo(new Date(row.createdAt)) : 'Just now',
+    priority,
+    unread: !row.read && !readIds[row.id],
+    type: row.type || 'info',
+    targetType: row.userId ? 'individual' : 'all',
+    targetValue: row.userId || undefined,
+    broadcastId: row.id,
+    createdAt: row.createdAt ? new Date(row.createdAt).getTime() : Date.now(),
+  };
+}
 
 // Web Audio API notification chime generator (zero external assets needed)
 const playNotificationChime = () => {
@@ -108,14 +106,12 @@ const playNotificationChime = () => {
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
 
-  // Broadcasts state
+  // Local broadcasts list (for admin broadcast history)
   const [broadcasts, setBroadcasts] = useState<BroadcastNotification[]>(() => {
     if (typeof window !== 'undefined') {
       try {
         const saved = localStorage.getItem(BROADCASTS_STORAGE_KEY);
-        if (saved) {
-          return JSON.parse(saved);
-        }
+        if (saved) return JSON.parse(saved);
       } catch (err) {
         console.error('Failed to load broadcasts from localStorage', err);
       }
@@ -123,19 +119,20 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return initialBroadcasts;
   });
 
+  // DB-synced notifications
+  const [dbNotifications, setDbNotifications] = useState<LMSNotification[]>([]);
+
   // Read notifications set (notificationId -> boolean)
   const [readIds, setReadIds] = useState<Record<string, boolean>>(() => {
     if (typeof window !== 'undefined') {
       try {
         const saved = localStorage.getItem(READ_NOTIFICATIONS_KEY);
-        if (saved) {
-          return JSON.parse(saved);
-        }
+        if (saved) return JSON.parse(saved);
       } catch (err) {
         console.error('Failed to load read notifications from localStorage', err);
       }
     }
-    return { sys_notif_3: true };
+    return {};
   });
 
   // Dismissed notifications set
@@ -143,9 +140,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (typeof window !== 'undefined') {
       try {
         const saved = localStorage.getItem(DISMISSED_NOTIFICATIONS_KEY);
-        if (saved) {
-          return JSON.parse(saved);
-        }
+        if (saved) return JSON.parse(saved);
       } catch (err) {
         console.error('Failed to load dismissed notifications from localStorage', err);
       }
@@ -189,66 +184,130 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [dismissedIds]);
 
-  // Real-time cross-tab / cross-window BroadcastChannel Pub/Sub
+  // Supabase Realtime & Postgres Synchronization Engine
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    // 1. Fetch initial notifications from Supabase Postgres
+    const fetchInitial = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('Notification')
+          .select('*')
+          .order('createdAt', { ascending: false })
+          .limit(30);
 
-    let channel: BroadcastChannel | null = null;
-    try {
-      channel = new BroadcastChannel(CHANNEL_NAME);
-      channel.onmessage = (event) => {
-        if (event.data?.type === 'NEW_BROADCAST' && event.data?.payload) {
-          const newBc: BroadcastNotification = event.data.payload;
-          setBroadcasts((prev) => {
-            if (prev.some((b) => b.id === newBc.id)) return prev;
-            return [newBc, ...prev];
+        if (error) {
+          console.warn('Supabase fetch initial notifications notice:', error.message);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          setDbNotifications(data.map((row) => mapDbRowToNotif(row, readIds)));
+        } else {
+          // If the table is brand new, seed default broadcast rows into Postgres
+          const initialRows = [
+            {
+              title: 'Campus Maintenance & Quiz Deadline Extended',
+              message: 'All LMS quizzes for Module 3 have been extended by 48 hours due to scheduled server upgrades.',
+              type: 'alert',
+              userId: null,
+            },
+            {
+              title: 'Session Live Now',
+              message: 'Session 2: Grading & Evaluation is currently active in Academic Information.',
+              type: 'alert',
+              userId: null,
+            },
+            {
+              title: 'Support Ticket Updated',
+              message: 'Faculty responded to ticket on Research Design quiz access.',
+              type: 'info',
+              userId: null,
+            },
+            {
+              title: 'Certificate Ready to Download',
+              message: 'Foundations of Modern Data Literacy certificate is verified & available to download.',
+              type: 'success',
+              userId: null,
+            },
+          ];
+          await supabase.from('Notification').insert(initialRows);
+          const { data: seeded } = await supabase
+            .from('Notification')
+            .select('*')
+            .order('createdAt', { ascending: false });
+          if (seeded) {
+            setDbNotifications(seeded.map((row) => mapDbRowToNotif(row, readIds)));
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching initial notifications:', err);
+      }
+    };
+
+    fetchInitial();
+
+    // 2. Subscribe to incoming notifications and broadcasts via Supabase Realtime
+    const channel = supabase
+      .channel(CHANNEL_NAME)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'Notification' },
+        (payload) => {
+          const row = payload.new;
+          const newNotif = mapDbRowToNotif(row, readIds);
+
+          setDbNotifications((prev) => {
+            if (prev.some((n) => n.id === newNotif.id)) return prev;
+            return [newNotif, ...prev];
           });
 
-          // Check if this broadcast targets the current user
+          // Check targeting
           const currentUserEmail = user?.email?.toLowerCase();
           const isTargeted =
-            newBc.targetType === 'all' ||
-            (newBc.targetType === 'individual' && newBc.targetValue?.toLowerCase() === currentUserEmail) ||
-            newBc.targetType === 'course'; // All learners take the program courses
+            newNotif.targetType === 'all' ||
+            (newNotif.targetType === 'individual' && newNotif.targetValue?.toLowerCase() === currentUserEmail);
 
           if (isTargeted) {
             playNotificationChime();
-            setActiveAlert({
-              id: `notif_${newBc.id}`,
-              title: `📢 ${newBc.title}`,
-              message: newBc.message,
-              time: 'Just now',
-              priority: newBc.priority,
-              unread: true,
-              type: 'broadcast',
-              targetType: newBc.targetType,
-              targetValue: newBc.targetValue,
-              broadcastId: newBc.id,
-              createdAt: Date.now(),
-            });
+            setActiveAlert(newNotif);
           }
         }
-      };
-    } catch {
-      // Fallback for browsers without BroadcastChannel
-    }
-
-    // Also listen to storage events across tabs
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === BROADCASTS_STORAGE_KEY && e.newValue) {
-        try {
-          const updated = JSON.parse(e.newValue);
-          setBroadcasts(updated);
-        } catch (err) {
-          console.error(err);
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'Notification' },
+        (payload) => {
+          const row = payload.new;
+          setDbNotifications((prev) =>
+            prev.map((n) => (n.id === row.id ? { ...n, unread: !row.read } : n))
+          );
         }
-      }
-    };
-    window.addEventListener('storage', handleStorage);
+      )
+      .on(
+        'broadcast',
+        { event: 'announcement' },
+        ({ payload }) => {
+          if (!payload) return;
+          playNotificationChime();
+          const ephemeralNotif: LMSNotification = {
+            id: `ephemeral_${Date.now()}`,
+            title: payload.title,
+            message: payload.message,
+            time: 'Just now',
+            priority: payload.priority || (payload.type === 'alert' ? 'Urgent' : 'Important'),
+            unread: true,
+            type: payload.type || 'broadcast',
+            targetType: payload.targetType || 'all',
+            targetValue: payload.targetValue,
+            createdAt: Date.now(),
+          };
+          setActiveAlert(ephemeralNotif);
+        }
+      )
+      .subscribe();
 
     return () => {
-      if (channel) channel.close();
-      window.removeEventListener('storage', handleStorage);
+      supabase.removeChannel(channel);
     };
   }, [user]);
 
@@ -264,18 +323,47 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       setBroadcasts((prev) => [newBroadcast, ...prev]);
 
-      // Publish to BroadcastChannel for instant cross-tab & cross-role delivery
-      if (typeof window !== 'undefined') {
-        try {
-          const channel = new BroadcastChannel(CHANNEL_NAME);
-          channel.postMessage({ type: 'NEW_BROADCAST', payload: newBroadcast });
-          channel.close();
-        } catch {
-          // ignore
-        }
+      const notifType =
+        data.priority === 'Urgent' ? 'alert' : data.priority === 'Important' ? 'warning' : 'info';
+
+      // 1. Send Ephemeral Broadcast via Supabase Realtime channel
+      try {
+        const channel = supabase.channel(CHANNEL_NAME);
+        channel.send({
+          type: 'broadcast',
+          event: 'announcement',
+          payload: {
+            title: data.title,
+            message: data.message,
+            priority: data.priority,
+            type: notifType,
+            targetType: data.targetType,
+            targetValue: data.targetValue,
+            totalTargetCount: data.totalTargetCount,
+          },
+        });
+      } catch (err) {
+        console.error('Supabase broadcast send failed:', err);
       }
 
-      // Play local sound and trigger alert
+      // 2. Persistent Database Insert to Supabase Postgres 'Notification' table
+      (async () => {
+        try {
+          await supabase.from('Notification').insert([
+            {
+              title: data.title,
+              message: data.message,
+              type: notifType,
+              userId: data.targetType === 'individual' ? data.targetValue : null,
+              read: false,
+            },
+          ]);
+        } catch (err) {
+          console.error('Supabase Notification DB insert failed:', err);
+        }
+      })();
+
+      // Trigger local sound & alert banner
       playNotificationChime();
       setActiveAlert({
         id: `notif_${newBroadcast.id}`,
@@ -305,47 +393,21 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const userEmail = user?.email?.toLowerCase() || '';
     const isAdmin = user?.role === 'admin';
 
-    // 1. Convert broadcasts into user-targeted notifications
-    const broadcastNotifs: LMSNotification[] = broadcasts
-      .filter((bc) => {
-        if (isAdmin) return true; // Admins see all announcements
-        if (bc.targetType === 'all') return true;
-        if (bc.targetType === 'individual') {
-          return bc.targetValue?.toLowerCase() === userEmail;
+    return dbNotifications
+      .filter((n) => {
+        if (dismissedIds[n.id]) return false;
+        if (isAdmin) return true;
+        if (n.targetType === 'all') return true;
+        if (n.targetType === 'individual') {
+          return n.targetValue?.toLowerCase() === userEmail;
         }
-        if (bc.targetType === 'course') {
-          // In the AI-Native PM program, learners are enrolled in ACA-101, BRM-204, AML-305
-          return true;
-        }
-        return false;
+        return true;
       })
-      .map((bc) => {
-        const notifId = `bc_notif_${bc.id}`;
-        return {
-          id: notifId,
-          title: bc.title,
-          message: bc.message,
-          time: bc.sentAt,
-          priority: bc.priority,
-          unread: !readIds[notifId],
-          type: 'broadcast',
-          targetType: bc.targetType,
-          targetValue: bc.targetValue,
-          broadcastId: bc.id,
-          createdAt: Date.now(),
-        };
-      });
-
-    // 2. Combine with system notifications
-    const combined = [...broadcastNotifs, ...initialSystemNotifications]
-      .filter((n) => !dismissedIds[n.id])
       .map((n) => ({
         ...n,
-        unread: !readIds[n.id],
+        unread: !readIds[n.id] && n.unread,
       }));
-
-    return combined;
-  }, [broadcasts, user, readIds, dismissedIds]);
+  }, [dbNotifications, user, readIds, dismissedIds]);
 
   const unreadCount = useMemo(() => {
     return notifications.filter((n) => n.unread).length;
@@ -353,6 +415,14 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const markAsRead = useCallback((id: string) => {
     setReadIds((prev) => ({ ...prev, [id]: true }));
+    // Also update Supabase database asynchronously
+    (async () => {
+      try {
+        await supabase.from('Notification').update({ read: true }).eq('id', id);
+      } catch (err) {
+        console.error('Failed to mark read in DB:', err);
+      }
+    })();
   }, []);
 
   const markAllAsRead = useCallback(() => {
@@ -363,6 +433,15 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       });
       return next;
     });
+
+    // Also update Supabase database asynchronously
+    (async () => {
+      try {
+        await supabase.from('Notification').update({ read: true }).eq('read', false);
+      } catch (err) {
+        console.error('Failed to mark all read in DB:', err);
+      }
+    })();
   }, [notifications]);
 
   const dismissNotification = useCallback((id: string) => {

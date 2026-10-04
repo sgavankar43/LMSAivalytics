@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { BroadcastNotification } from '@/types';
+import { supabase } from '@/lib/supabase/client';
 import {
   BellRing,
   Send,
@@ -41,7 +42,7 @@ export const BroadcastCenterModal: React.FC<BroadcastCenterModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !message.trim()) return;
 
@@ -54,6 +55,41 @@ export const BroadcastCenterModal: React.FC<BroadcastCenterModalProps> = ({
     } else if (targetType === 'individual') {
       targetValue = targetEmail;
       recipientCount = 1;
+    }
+
+    const notifType = priority === 'Urgent' ? 'alert' : priority === 'Important' ? 'warning' : 'info';
+
+    // Option A: Ephemeral Broadcast (zero DB storage overhead)
+    try {
+      const channel = supabase.channel('realtime:notifications');
+      await channel.send({
+        type: 'broadcast',
+        event: 'announcement',
+        payload: {
+          title: title.trim(),
+          message: message.trim(),
+          type: notifType,
+          priority,
+          targetType,
+          targetValue,
+        },
+      });
+    } catch (err) {
+      console.error('Supabase ephemeral broadcast error:', err);
+    }
+
+    // Option B: Persistent Database Insert (recommended for notification logs)
+    try {
+      await supabase.from('Notification').insert([
+        {
+          title: title.trim(),
+          message: message.trim(),
+          type: notifType,
+          userId: targetType === 'individual' ? targetValue : null, // null if broadcast to all
+        },
+      ]);
+    } catch (err) {
+      console.error('Supabase Notification DB insert error:', err);
     }
 
     onSendBroadcast({

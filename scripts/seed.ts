@@ -297,24 +297,18 @@ async function main() {
   await prisma.supportTicket.createMany({
     data: [
       {
-        ticketCode: 'TKT-8492',
         userId: learnerId,
-        courseId: course2.id,
         subject: 'Access permission issue for Session 1 Quiz on Research Design',
         description:
           'When clicking on the Session 1 graded quiz submission link, the portal returns permission error 403. Need access verified before Sunday midnight cutoff.',
-        status: 'IN_PROGRESS',
-        priority: 'HIGH',
+        status: 'OPEN',
       },
       {
-        ticketCode: 'TKT-8488',
         userId: learnerId,
-        courseId: course1.id,
         subject: 'Recording download audio desync in Academic Policies lecture',
         description:
           'The downloadable MP4 lecture video has a 2-second audio delay around timestamp 34:10 during the honor code presentation.',
         status: 'OPEN',
-        priority: 'MEDIUM',
       },
     ],
   });

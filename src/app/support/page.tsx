@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { mockTickets } from '@/data/mockData';
 import { SupportTicket } from '@/types';
+import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/lib/supabase/client';
 import {
   Ticket,
   Plus,
@@ -16,8 +18,36 @@ import {
   HelpCircle,
 } from 'lucide-react';
 
+function formatTimeAgo(date: Date): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (isNaN(seconds) || seconds < 30) return 'Just now';
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+const mapDbToUiTicket = (row: any): SupportTicket => ({
+  id: row.id,
+  ticketId: 'TKT-' + (row.id.length > 8 ? row.id.slice(0, 4).toUpperCase() : row.id),
+  subject: row.subject,
+  course: 'Academic Information',
+  category: 'Academic',
+  status: row.status === 'RESOLVED' ? 'Resolved' : row.status === 'IN_PROGRESS' ? 'In Progress' : 'Open',
+  priority: 'Medium',
+  createdAt: row.createdAt ? formatTimeAgo(new Date(row.createdAt)) : 'Just now',
+  lastUpdated: row.createdAt ? formatTimeAgo(new Date(row.createdAt)) : 'Just now',
+  repliesCount: 0,
+  description: row.description,
+  studentName: row.userId,
+});
+
 export default function SupportPage() {
-  const [tickets, setTickets] = useState<SupportTicket[]>(mockTickets);
+  const { user } = useAuth();
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Open' | 'In Progress' | 'Resolved'>('All');
   const [showNewModal, setShowNewModal] = useState(false);
@@ -30,12 +60,106 @@ export default function SupportPage() {
   const [newPriority, setNewPriority] = useState<'Low' | 'Medium' | 'High'>('Medium');
   const [newDescription, setNewDescription] = useState('');
 
-  const handleCreateTicket = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newSubject || !newDescription) return;
+  // 1. Fetch initial tickets and subscribe to Supabase Realtime
+  useEffect(() => {
+    const fetchTickets = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('SupportTicket')
+          .select('*')
+          .order('createdAt', { ascending: false });
 
-    const created: SupportTicket = {
-      id: 'tkt_' + Date.now(),
+        if (error) {
+          console.warn('Supabase fetch tickets:', error.message);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          setTickets(data.map(mapDbToUiTicket));
+        } else {
+          // Seed default tickets to Postgres if table is freshly created
+          const defaultTickets = [
+            {
+              userId: user?.email || 'alex.morgan@aivalytics.com',
+              subject: 'Access permission issue for Session 1 Quiz on Research Design',
+              description:
+                'When clicking on the Session 1 graded quiz submission link, the portal returns permission error 403. Need access verified before Sunday midnight cutoff.',
+              status: 'OPEN',
+            },
+            {
+              userId: user?.email || 'alex.morgan@aivalytics.com',
+              subject: 'Recording download audio desync in Academic Policies lecture',
+              description:
+                'The downloadable MP4 lecture video has a 2-second audio delay around timestamp 34:10 during the honor code presentation.',
+              status: 'OPEN',
+            },
+          ];
+          await supabase.from('SupportTicket').insert(defaultTickets);
+          const { data: seeded } = await supabase
+            .from('SupportTicket')
+            .select('*')
+            .order('createdAt', { ascending: false });
+          if (seeded) setTickets(seeded.map(mapDbToUiTicket));
+        }
+      } catch (err) {
+        console.error('Failed to load tickets from Supabase:', err);
+      }
+    };
+
+    fetchTickets();
+
+    // 2. Subscribe to Supabase Realtime channel realtime:support_tickets
+    const channel = supabase
+      .channel('realtime:support_tickets')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'SupportTicket' },
+        (payload) => {
+          const newTicket = mapDbToUiTicket(payload.new);
+          setTickets((prev) => {
+            if (prev.some((t) => t.id === newTicket.id)) return prev;
+            const matchingTemp = prev.find(
+              (t) => t.id.startsWith('tkt_') && t.subject === newTicket.subject
+            );
+            if (matchingTemp) {
+              return prev.map((t) => (t.id === matchingTemp.id ? newTicket : t));
+            }
+            return [newTicket, ...prev];
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'SupportTicket' },
+        (payload) => {
+          const updated = mapDbToUiTicket(payload.new);
+          setTickets((prev) =>
+            prev.map((t) => (t.id === updated.id ? updated : t))
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  const handleCreateTicket = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSubject.trim() || !newDescription.trim()) return;
+
+    const ticketData = {
+      subject: newSubject.trim(),
+      description: newDescription.trim(),
+      userId: user?.id || user?.email || 'alex.morgan@aivalytics.com',
+      status: 'OPEN',
+    };
+
+    // Optimistic UI ticket
+    const tempId = 'tkt_' + Date.now();
+    const optimisticTicket: SupportTicket = {
+      id: tempId,
       ticketId: 'TKT-' + Math.floor(1000 + Math.random() * 9000),
       subject: newSubject,
       course: newCourse,
@@ -46,12 +170,36 @@ export default function SupportPage() {
       lastUpdated: 'Just now',
       repliesCount: 0,
       description: newDescription,
+      studentName: user?.name || 'Alex Morgan',
     };
 
-    setTickets([created, ...tickets]);
+    setTickets((prev) => [optimisticTicket, ...prev]);
     setShowNewModal(false);
     setNewSubject('');
     setNewDescription('');
+
+    // Persist to Supabase Postgres
+    try {
+      const { data, error } = await supabase
+        .from('SupportTicket')
+        .insert([ticketData])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Ticket creation failed:', error);
+      } else if (data) {
+        const realTicket = mapDbToUiTicket(data);
+        setTickets((prev) => {
+          if (prev.some((t) => t.id === realTicket.id)) {
+            return prev.filter((t) => t.id !== tempId);
+          }
+          return prev.map((t) => (t.id === tempId ? realTicket : t));
+        });
+      }
+    } catch (err) {
+      console.error('Supabase ticket insert error:', err);
+    }
   };
 
   const filteredTickets = tickets.filter((tkt) => {
@@ -125,9 +273,9 @@ export default function SupportPage() {
               <p className="text-xs text-gray-400 mt-1">Try adjusting your search criteria or create a new ticket.</p>
             </div>
           ) : (
-            filteredTickets.map((ticket) => (
+            filteredTickets.map((ticket, idx) => (
               <div
-                key={ticket.id}
+                key={`${ticket.id}_${idx}`}
                 onClick={() => setSelectedTicket(ticket)}
                 className="bg-white rounded-2xl p-5 border border-[#eaedf0] shadow-[0_2px_10px_rgba(0,0,0,0.02)] card-hover cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
               >
