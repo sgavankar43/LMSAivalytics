@@ -26,9 +26,11 @@ interface NotificationContextType {
   unreadCount: number;
   sendBroadcast: (data: Omit<BroadcastNotification, 'id' | 'sentAt' | 'readCount'>) => BroadcastNotification;
   deleteBroadcast: (id: string) => void;
+  cancelBroadcast: (id: string) => void;
+  cancelNotification: (id: string) => void;
+  dismissNotification: (id: string) => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
-  dismissNotification: (id: string) => void;
   activeAlert: LMSNotification | null;
   dismissAlert: () => void;
 }
@@ -55,7 +57,6 @@ function formatTimeAgo(date: Date): string {
 
 // Map Postgres row to LMSNotification
 function mapDbRowToNotif(row: any, readIds: Record<string, boolean>): LMSNotification {
-  const isAlert = row.type === 'alert' || row.type === 'warning';
   const priority: 'Normal' | 'Important' | 'Urgent' =
     row.type === 'alert' ? 'Urgent' : row.type === 'warning' ? 'Important' : 'Normal';
 
@@ -66,7 +67,7 @@ function mapDbRowToNotif(row: any, readIds: Record<string, boolean>): LMSNotific
     time: row.createdAt ? formatTimeAgo(new Date(row.createdAt)) : 'Just now',
     priority,
     unread: !row.read && !readIds[row.id],
-    type: row.type || 'info',
+    type: row.type === 'alert' || row.type === 'warning' ? 'broadcast' : row.type || 'info',
     targetType: row.userId ? 'individual' : 'all',
     targetValue: row.userId || undefined,
     broadcastId: row.id,
@@ -135,7 +136,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return {};
   });
 
-  // Dismissed notifications set
+  // Dismissed / Cancelled notifications set
   const [dismissedIds, setDismissedIds] = useState<Record<string, boolean>>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -203,7 +204,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         if (data && data.length > 0) {
           setDbNotifications(data.map((row) => mapDbRowToNotif(row, readIds)));
         } else {
-          // If the table is brand new, seed default broadcast rows into Postgres
+          // If table is fresh, seed default broadcast rows into Postgres
           const initialRows = [
             {
               title: 'Campus Maintenance & Quiz Deadline Extended',
@@ -212,7 +213,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
               userId: null,
             },
             {
-              title: 'Session Live Now',
+              title: 'Session Live Now: Academic Information',
               message: 'Session 2: Grading & Evaluation is currently active in Academic Information.',
               type: 'alert',
               userId: null,
@@ -284,23 +285,40 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
       )
       .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'Notification' },
+        (payload) => {
+          const deletedId = payload.old?.id;
+          if (deletedId) {
+            setDbNotifications((prev) => prev.filter((n) => n.id !== deletedId));
+          }
+        }
+      )
+      .on(
         'broadcast',
         { event: 'announcement' },
         ({ payload }) => {
           if (!payload) return;
           playNotificationChime();
           const ephemeralNotif: LMSNotification = {
-            id: `ephemeral_${Date.now()}`,
+            id: payload.id || `ephemeral_${Date.now()}`,
             title: payload.title,
             message: payload.message,
             time: 'Just now',
             priority: payload.priority || (payload.type === 'alert' ? 'Urgent' : 'Important'),
             unread: true,
-            type: payload.type || 'broadcast',
+            type: 'broadcast',
             targetType: payload.targetType || 'all',
             targetValue: payload.targetValue,
+            broadcastId: payload.broadcastId,
             createdAt: Date.now(),
           };
+
+          setDbNotifications((prev) => {
+            if (prev.some((n) => n.id === ephemeralNotif.id)) return prev;
+            return [ephemeralNotif, ...prev];
+          });
+
           setActiveAlert(ephemeralNotif);
         }
       )
@@ -314,9 +332,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Send Broadcast function (callable by Admin)
   const sendBroadcast = useCallback(
     (data: Omit<BroadcastNotification, 'id' | 'sentAt' | 'readCount'>): BroadcastNotification => {
+      const bcId = `bc_${Date.now()}`;
       const newBroadcast: BroadcastNotification = {
         ...data,
-        id: `bc_${Date.now()}`,
+        id: bcId,
         sentAt: 'Just now',
         readCount: 0,
       };
@@ -326,6 +345,24 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const notifType =
         data.priority === 'Urgent' ? 'alert' : data.priority === 'Important' ? 'warning' : 'info';
 
+      const notifId = `notif_${bcId}`;
+      const newNotif: LMSNotification = {
+        id: notifId,
+        title: newBroadcast.title,
+        message: newBroadcast.message,
+        time: 'Just now',
+        priority: newBroadcast.priority,
+        unread: true,
+        type: 'broadcast',
+        targetType: newBroadcast.targetType,
+        targetValue: newBroadcast.targetValue,
+        broadcastId: bcId,
+        createdAt: Date.now(),
+      };
+
+      // IMMEDIATELY add to dbNotifications so it renders in the notification dropdown without delay!
+      setDbNotifications((prev) => [newNotif, ...prev]);
+
       // 1. Send Ephemeral Broadcast via Supabase Realtime channel
       try {
         const channel = supabase.channel(CHANNEL_NAME);
@@ -333,12 +370,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           type: 'broadcast',
           event: 'announcement',
           payload: {
-            title: data.title,
-            message: data.message,
-            priority: data.priority,
-            type: notifType,
-            targetType: data.targetType,
-            targetValue: data.targetValue,
+            ...newNotif,
             totalTargetCount: data.totalTargetCount,
           },
         });
@@ -349,15 +381,25 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       // 2. Persistent Database Insert to Supabase Postgres 'Notification' table
       (async () => {
         try {
-          await supabase.from('Notification').insert([
-            {
-              title: data.title,
-              message: data.message,
-              type: notifType,
-              userId: data.targetType === 'individual' ? data.targetValue : null,
-              read: false,
-            },
-          ]);
+          const { data: inserted } = await supabase
+            .from('Notification')
+            .insert([
+              {
+                title: data.title,
+                message: data.message,
+                type: notifType,
+                userId: data.targetType === 'individual' ? data.targetValue : null,
+                read: false,
+              },
+            ])
+            .select()
+            .single();
+
+          if (inserted) {
+            setDbNotifications((prev) =>
+              prev.map((n) => (n.id === notifId ? { ...n, id: inserted.id } : n))
+            );
+          }
         } catch (err) {
           console.error('Supabase Notification DB insert failed:', err);
         }
@@ -365,37 +407,92 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       // Trigger local sound & alert banner
       playNotificationChime();
-      setActiveAlert({
-        id: `notif_${newBroadcast.id}`,
-        title: `📢 ${newBroadcast.title}`,
-        message: newBroadcast.message,
-        time: 'Just now',
-        priority: newBroadcast.priority,
-        unread: true,
-        type: 'broadcast',
-        targetType: newBroadcast.targetType,
-        targetValue: newBroadcast.targetValue,
-        broadcastId: newBroadcast.id,
-        createdAt: Date.now(),
-      });
+      setActiveAlert(newNotif);
 
       return newBroadcast;
     },
     []
   );
 
-  const deleteBroadcast = useCallback((id: string) => {
-    setBroadcasts((prev) => prev.filter((b) => b.id !== id));
+  // Cancel / Delete a notification completely
+  const cancelNotification = useCallback((id: string) => {
+    // 1. Mark as dismissed in localStorage state
+    setDismissedIds((prev) => ({ ...prev, [id]: true }));
+
+    // 2. Remove immediately from dbNotifications
+    setDbNotifications((prev) =>
+      prev.filter((n) => n.id !== id && n.broadcastId !== id && `notif_${n.broadcastId}` !== id)
+    );
+
+    // 3. Remove from broadcasts if it's a broadcast
+    setBroadcasts((prev) =>
+      prev.filter(
+        (bc) =>
+          bc.id !== id &&
+          `notif_${bc.id}` !== id &&
+          `bc_notif_${bc.id}` !== id &&
+          !id.includes(bc.id)
+      )
+    );
+
+    // 4. Dismiss active alert banner if matched
+    setActiveAlert((curr) =>
+      curr?.id === id || curr?.broadcastId === id || curr?.id?.includes(id) ? null : curr
+    );
+
+    // 5. Delete from Supabase Notification table if persisted in DB
+    (async () => {
+      try {
+        await supabase.from('Notification').delete().eq('id', id);
+      } catch (err) {
+        console.error('Failed to delete notification from DB:', err);
+      }
+    })();
   }, []);
+
+  const dismissNotification = cancelNotification;
+  const deleteBroadcast = cancelNotification;
+  const cancelBroadcast = cancelNotification;
 
   // Compute targeted notifications for the current active user
   const notifications: LMSNotification[] = useMemo(() => {
     const userEmail = user?.email?.toLowerCase() || '';
     const isAdmin = user?.role === 'admin';
 
-    return dbNotifications
+    // 1. Map broadcasts into LMSNotification format
+    const broadcastNotifs: LMSNotification[] = broadcasts.map((bc) => ({
+      id: bc.id.startsWith('notif_') || bc.id.startsWith('bc_notif_') ? bc.id : `bc_notif_${bc.id}`,
+      title: bc.title,
+      message: bc.message,
+      time: bc.sentAt || 'Just now',
+      priority: bc.priority,
+      unread: !readIds[bc.id] && !readIds[`bc_notif_${bc.id}`] && !readIds[`notif_${bc.id}`],
+      type: 'broadcast',
+      targetType: bc.targetType,
+      targetValue: bc.targetValue,
+      broadcastId: bc.id,
+      createdAt: Date.now(),
+    }));
+
+    // 2. Combine with dbNotifications, deduplicating by ID or title+message
+    const combined: LMSNotification[] = [...dbNotifications];
+    for (const bcn of broadcastNotifs) {
+      const alreadyExists = combined.some(
+        (n) =>
+          n.id === bcn.id ||
+          (n.broadcastId && n.broadcastId === bcn.broadcastId) ||
+          (n.title === bcn.title && n.message === bcn.message)
+      );
+      if (!alreadyExists) {
+        combined.push(bcn);
+      }
+    }
+
+    // 3. Filter by dismissed and targeting
+    return combined
       .filter((n) => {
         if (dismissedIds[n.id]) return false;
+        if (n.broadcastId && dismissedIds[n.broadcastId]) return false;
         if (isAdmin) return true;
         if (n.targetType === 'all') return true;
         if (n.targetType === 'individual') {
@@ -406,8 +503,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       .map((n) => ({
         ...n,
         unread: !readIds[n.id] && n.unread,
-      }));
-  }, [dbNotifications, user, readIds, dismissedIds]);
+      }))
+      .sort((a, b) => b.createdAt - a.createdAt);
+  }, [dbNotifications, broadcasts, user, readIds, dismissedIds]);
 
   const unreadCount = useMemo(() => {
     return notifications.filter((n) => n.unread).length;
@@ -415,7 +513,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const markAsRead = useCallback((id: string) => {
     setReadIds((prev) => ({ ...prev, [id]: true }));
-    // Also update Supabase database asynchronously
     (async () => {
       try {
         await supabase.from('Notification').update({ read: true }).eq('id', id);
@@ -434,7 +531,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return next;
     });
 
-    // Also update Supabase database asynchronously
     (async () => {
       try {
         await supabase.from('Notification').update({ read: true }).eq('read', false);
@@ -443,10 +539,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     })();
   }, [notifications]);
-
-  const dismissNotification = useCallback((id: string) => {
-    setDismissedIds((prev) => ({ ...prev, [id]: true }));
-  }, []);
 
   const dismissAlert = useCallback(() => {
     setActiveAlert(null);
@@ -460,9 +552,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         unreadCount,
         sendBroadcast,
         deleteBroadcast,
+        cancelBroadcast,
+        cancelNotification,
+        dismissNotification,
         markAsRead,
         markAllAsRead,
-        dismissNotification,
         activeAlert,
         dismissAlert,
       }}

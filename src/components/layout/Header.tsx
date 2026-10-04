@@ -33,6 +33,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
     unreadCount,
     markAsRead,
     markAllAsRead,
+    cancelNotification,
     dismissNotification,
     activeAlert,
     dismissAlert,
@@ -159,48 +160,64 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <p className={`text-xs font-bold ${n.unread ? 'text-gray-900' : 'text-gray-600'}`}>
-                              {n.title}
-                            </p>
-                            <span
-                              className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded ${
-                                isUrgent
-                                  ? 'bg-red-100 text-red-700'
-                                  : isImportant
-                                  ? 'bg-amber-100 text-amber-800'
-                                  : 'bg-emerald-100 text-emerald-800'
-                              }`}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className={`text-xs font-bold ${n.unread ? 'text-gray-900' : 'text-gray-700'}`}>
+                                {n.title}
+                              </p>
+                              <span
+                                className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded ${
+                                  isUrgent
+                                    ? 'bg-red-100 text-red-700'
+                                    : isImportant
+                                    ? 'bg-amber-100 text-amber-800'
+                                    : 'bg-emerald-100 text-emerald-800'
+                                }`}
+                              >
+                                {n.priority}
+                              </span>
+                              {n.type === 'broadcast' && (
+                                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 border border-purple-200/60">
+                                  Broadcast
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Visible Cancel option on notification card */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                cancelNotification(n.id);
+                              }}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold text-gray-500 hover:text-red-700 bg-gray-100/80 hover:bg-red-50 border border-gray-200 hover:border-red-200 transition-colors shrink-0 cursor-pointer shadow-2xs"
+                              title="Cancel this notification"
                             >
-                              {n.priority}
-                            </span>
+                              <X className="w-3 h-3 text-gray-400 hover:text-red-500" />
+                              <span>Cancel</span>
+                            </button>
                           </div>
 
                           <p className="text-xs text-gray-600 mt-1 leading-relaxed break-words">
                             {n.message}
                           </p>
 
-                          <div className="flex items-center justify-between text-[10px] text-gray-400 mt-1.5">
-                            <span>{n.time}</span>
-                            {n.unread && (
-                              <span className="text-[#059669] font-bold text-[9px] bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                                New
-                              </span>
-                            )}
+                          <div className="flex items-center justify-between text-[10px] text-gray-400 mt-2 pt-1 border-t border-gray-100/70">
+                            <span className="font-mono">{n.time}</span>
+                            <div className="flex items-center gap-2">
+                              {n.targetType === 'all' && (
+                                <span className="text-[9px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.2 rounded">
+                                  All Users
+                                </span>
+                              )}
+                              {n.unread && (
+                                <span className="text-[#059669] font-bold text-[9px] bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                  New
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
-
-                        {/* Dismiss Notification */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            dismissNotification(n.id);
-                          }}
-                          className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-gray-700 transition-opacity"
-                          title="Dismiss notification"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
                       </div>
                     );
                   })
@@ -238,13 +255,22 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
                 {activeAlert.message}
               </p>
             </div>
-            <button
-              onClick={dismissAlert}
-              className="p-1 text-gray-400 hover:text-white transition-colors"
-              title="Dismiss"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={dismissAlert}
+                className="px-2 py-1 text-[10px] font-semibold text-gray-300 hover:text-white bg-white/10 hover:bg-white/20 rounded-md transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={dismissAlert}
+                className="p-1 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                title="Dismiss"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
 
