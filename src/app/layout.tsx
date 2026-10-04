@@ -23,7 +23,12 @@ export const metadata: Metadata = {
   title: 'AIvalytics LMS - Learning Management System',
   description: 'Enterprise Course Management and AI Learning Analytics Platform',
   icons: {
-    icon: '/favicon.ico',
+    icon: [
+      { url: '/icon.png', type: 'image/png' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico' },
+    ],
+    apple: '/apple-icon.png',
   },
 };
 
