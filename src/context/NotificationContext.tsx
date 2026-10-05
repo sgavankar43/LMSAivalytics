@@ -17,6 +17,7 @@ export interface LMSNotification {
   targetType: 'all' | 'course' | 'individual';
   targetValue?: string;
   broadcastId?: string;
+  actionUrl?: string;
   createdAt: number;
 }
 
@@ -29,9 +30,10 @@ interface NotificationContextType {
     title: string;
     message: string;
     priority?: 'Normal' | 'Important' | 'Urgent';
-    type?: 'ticket' | 'broadcast' | 'info' | 'warning' | 'success' | 'alert';
+    type?: 'ticket' | 'broadcast' | 'session' | 'info' | 'warning' | 'success' | 'alert';
     targetType?: 'all' | 'course' | 'individual';
     targetValue?: string;
+    actionUrl?: string;
   }) => Promise<void>;
   deleteBroadcast: (id: string) => void;
   cancelBroadcast: (id: string) => void;
@@ -428,9 +430,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       title: string;
       message: string;
       priority?: 'Normal' | 'Important' | 'Urgent';
-      type?: 'ticket' | 'broadcast' | 'info' | 'warning' | 'success' | 'alert';
+      type?: 'ticket' | 'broadcast' | 'session' | 'info' | 'warning' | 'success' | 'alert';
       targetType?: 'all' | 'course' | 'individual';
       targetValue?: string;
+      actionUrl?: string;
     }) => {
       const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
       const notifType = data.type || 'info';
@@ -444,6 +447,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         type: notifType,
         targetType: data.targetType || 'all',
         targetValue: data.targetValue,
+        actionUrl: data.actionUrl,
         createdAt: Date.now(),
       };
 

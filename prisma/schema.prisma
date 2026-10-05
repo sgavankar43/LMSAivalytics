@@ -162,11 +162,19 @@ model SupportTicket {
 }
 
 model ClassSession {
-  id        String   @id @default(uuid())
-  title     String
-  status    String   // "SCHEDULED" | "LIVE" | "ENDED"
-  startTime DateTime
-  createdAt DateTime @default(now())
+  id              String    @id @default(uuid())
+  title           String
+  course          String    @default("Academic Information")
+  instructor      String    @default("Admin Faculty")
+  meetingUrl      String?
+  recordingUrl    String?
+  type            String    @default("LIVE") // "LIVE" | "RECORDING"
+  status          String    @default("In Progress") // "In Progress" | "Upcoming" | "Closed"
+  durationMinutes Int       @default(60)
+  startTime       DateTime  @default(now())
+  expiresAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt @default(now())
 }
 
 model Certificate {

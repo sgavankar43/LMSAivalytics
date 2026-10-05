@@ -12,6 +12,7 @@ import { BroadcastCenterModal } from '@/components/admin/BroadcastCenterModal';
 import { AdminEngagementChart } from '@/components/admin/AdminEngagementChart';
 import { AdminQuizStatsCard } from '@/components/admin/AdminQuizStatsCard';
 import { CsvQuizUploadModal } from '@/components/admin/CsvQuizUploadModal';
+import { CreateLectureModal } from '@/components/admin/CreateLectureModal';
 import { useNotifications } from '@/context/NotificationContext';
 import { useSupportTickets } from '@/context/SupportTicketContext';
 import {
@@ -26,6 +27,7 @@ import {
   ChevronDown,
   ShieldCheck,
   CheckCircle2,
+  Video,
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -41,6 +43,7 @@ export const AdminDashboard: React.FC = () => {
   // Modals state
   const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
   const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
+  const [isLectureModalOpen, setIsLectureModalOpen] = useState(false);
 
   // Toast feedback state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -166,11 +169,22 @@ export const AdminDashboard: React.FC = () => {
 
         {/* Global Admin Action CTAs */}
         <div className="flex flex-wrap items-center gap-2.5">
+          {/* Create Live Lecture Button */}
+          <button
+            onClick={() => setIsLectureModalOpen(true)}
+            id="admin-create-lecture-btn"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#121614] hover:bg-black shadow-sm transition-all duration-150 active:scale-95 cursor-pointer"
+            title="Launch and broadcast new live Google Meet classroom"
+          >
+            <Video className="w-4 h-4 text-[#3ECE92]" />
+            <span>Create Live Lecture</span>
+          </button>
+
           {/* Push Broadcast Button */}
           <button
             onClick={() => setIsBroadcastModalOpen(true)}
             id="admin-push-broadcast-btn"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-[#111614] bg-[#3ECE92] hover:bg-[#34b780] shadow-sm transition-all duration-150 active:scale-95"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-[#111614] bg-[#3ECE92] hover:bg-[#34b780] shadow-sm transition-all duration-150 active:scale-95 cursor-pointer"
           >
             <BellRing className="w-4 h-4" />
             <span>Broadcast Notice</span>
@@ -239,6 +253,7 @@ export const AdminDashboard: React.FC = () => {
         <AdminUpcomingEventsCard
           events={sessions}
           onAddEvent={handleAddEvent}
+          onOpenCreateModal={() => setIsLectureModalOpen(true)}
         />
 
         {/* Task Management Card with Manual Creation, Completion & Deletion */}
@@ -275,6 +290,13 @@ export const AdminDashboard: React.FC = () => {
         isOpen={isQuizModalOpen}
         onClose={() => setIsQuizModalOpen(false)}
         onSuccess={() => showToast('New assessment created and published to students!')}
+      />
+
+      {/* Create Live Lecture Modal */}
+      <CreateLectureModal
+        isOpen={isLectureModalOpen}
+        onClose={() => setIsLectureModalOpen(false)}
+        onSuccess={(lectureTitle) => showToast(`Live lecture "${lectureTitle}" launched & broadcasted to all students!`)}
       />
     </div>
   );

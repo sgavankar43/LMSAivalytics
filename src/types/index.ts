@@ -40,6 +40,9 @@ export interface SessionItem {
   date?: string;
   time?: string;
   duration?: string;
+  durationMinutes?: number;
+  startTime?: string | number;
+  expiresAt?: string | number;
   instructor?: string;
   recordingUrl?: string;
   meetingUrl?: string;

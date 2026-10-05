@@ -17,12 +17,13 @@ import {
 } from '@/data/mockData';
 import { useAuth } from '@/context/AuthContext';
 import { useAttendance } from '@/context/AttendanceContext';
+import { parseDbTimestamp } from '@/lib/dateUtils';
 import Link from 'next/link';
-import { Calendar, ChevronDown, FileCheck, ArrowRight } from 'lucide-react';
+import { Calendar, ChevronDown, FileCheck, ArrowRight, Video, Clock, User, ExternalLink } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user, role, isLoading } = useAuth();
-  const { getStudentAttendance } = useAttendance();
+  const { getStudentAttendance, sessions, activeLiveSession } = useAttendance();
   const [selectedRange, setSelectedRange] = useState('Aug 1 - Aug 31, 2026');
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -103,6 +104,68 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
+
+          {/* Dynamic Live Classroom Happening Now Banner */}
+          {activeLiveSession && (
+            <div
+              id="live-lecture-dashboard-card"
+              className="bg-gradient-to-r from-[#121614] via-[#1a231f] to-[#121614] text-white rounded-3xl p-6 sm:p-7 border-2 border-[#3ECE92]/40 shadow-xl shadow-[#3ECE92]/10 relative overflow-hidden animate-in fade-in slide-in-from-top-3 duration-300"
+            >
+              <div className="absolute top-0 right-0 w-64 h-64 bg-[#3ECE92]/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#3ECE92] text-[#111614] shadow-xs">
+                      <span className="w-2 h-2 rounded-full bg-[#111614] animate-ping" />
+                      <span>LIVE CLASSROOM IN SESSION</span>
+                    </span>
+                    <span className="text-xs font-mono text-gray-300 bg-white/10 px-2.5 py-0.5 rounded-full">
+                      {activeLiveSession.course}
+                    </span>
+                    {activeLiveSession.expiresAt && (
+                      <span className="text-xs font-mono text-[#3ECE92] font-semibold bg-[#3ECE92]/10 px-2.5 py-0.5 rounded-full">
+                        Ends in {Math.max(1, Math.round((parseDbTimestamp(activeLiveSession.expiresAt) - Date.now()) / 60000))}m
+                      </span>
+                    )}
+                  </div>
+
+                  <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+                    {activeLiveSession.title}
+                  </h2>
+
+                  <p className="text-xs sm:text-sm text-gray-300 max-w-2xl leading-relaxed">
+                    Faculty {activeLiveSession.instructor || 'Instructor'} is hosting this interactive classroom on Google Meet. Click Join Live to enter the live session.
+                  </p>
+
+                  <div className="flex items-center gap-4 text-xs text-gray-400 font-mono pt-1">
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-[#3ECE92]" />
+                      {activeLiveSession.time} ({activeLiveSession.duration || '60 mins'})
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-[#3ECE92]" />
+                      {activeLiveSession.instructor || 'Prof. Marcus Vance'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  <button
+                    onClick={() => {
+                      const meetUrl = activeLiveSession.meetingUrl || 'https://meet.google.com/jye-igap-skb';
+                      window.open(meetUrl, '_blank', 'noopener,noreferrer');
+                    }}
+                    id="student-dashboard-join-live-btn"
+                    className="bg-[#3ECE92] hover:bg-[#34be83] text-[#111614] font-bold px-6 py-3.5 rounded-2xl text-xs sm:text-sm transition-all duration-200 flex items-center gap-2.5 shadow-lg shadow-[#3ECE92]/25 hover:scale-105 active:scale-95 cursor-pointer"
+                  >
+                    <Video className="w-4 h-4 fill-current" />
+                    <span>Join Live Google Meet</span>
+                    <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Active Assessments & Project Submissions Callout Banner for Learners */}
           <div className="bg-linear-to-r from-[#121614] to-[#1c221f] text-white rounded-2xl p-5 border border-gray-800 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -196,7 +259,7 @@ export default function DashboardPage() {
 
           {/* 5. Recent Sessions Table */}
           <div>
-            <RecentSessionsTable sessions={mockRecentSessions} />
+            <RecentSessionsTable sessions={sessions} />
           </div>
         </div>
       )}

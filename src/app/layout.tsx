@@ -48,13 +48,13 @@ export default function RootLayout({
           <SidebarProvider>
             <TestProvider>
               <ProjectSubmissionsProvider>
-                <AttendanceProvider>
-                  <EnrollmentProvider>
-                    <NotificationProvider>
+                <NotificationProvider>
+                  <AttendanceProvider>
+                    <EnrollmentProvider>
                       <SupportTicketProvider>{children}</SupportTicketProvider>
-                    </NotificationProvider>
-                  </EnrollmentProvider>
-                </AttendanceProvider>
+                    </EnrollmentProvider>
+                  </AttendanceProvider>
+                </NotificationProvider>
               </ProjectSubmissionsProvider>
             </TestProvider>
           </SidebarProvider>

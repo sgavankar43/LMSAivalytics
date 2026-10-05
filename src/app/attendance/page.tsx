@@ -35,6 +35,7 @@ export default function AttendancePage() {
     sessions,
     attendances,
     addSession,
+    createLecture,
     getSessionAttendance,
     getStudentAttendance,
     overallInstitutionAttendance,
@@ -83,36 +84,34 @@ export default function AttendancePage() {
 
   // New Event Schedule Form State
   const [newTitle, setNewTitle] = useState('');
-  const [newCourse, setNewCourse] = useState('AI-Native Project Management');
+  const [newCourse, setNewCourse] = useState('Applied AI Systems');
   const [newType, setNewType] = useState<'LIVE' | 'RECORDING'>('LIVE');
-  const [newDate, setNewDate] = useState('Tomorrow');
+  const [newDate, setNewDate] = useState('Today');
   const [newTime, setNewTime] = useState('11:00 AM - 12:30 PM');
   const [newInstructor, setNewInstructor] = useState('Admin Faculty');
-  const [newMeetingUrl, setNewMeetingUrl] = useState('https://meet.aivalytics.com/session-live');
+  const [newMeetingUrl, setNewMeetingUrl] = useState('https://meet.google.com/jye-igap-skb');
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  const handleScheduleSubmit = (e: React.FormEvent) => {
+  const handleScheduleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
 
-    const newSession = addSession({
+    const newSession = await createLecture({
       title: newTitle.trim(),
       course: newCourse,
-      type: newType,
-      status: 'Upcoming',
-      date: newDate,
-      time: newTime,
       instructor: newInstructor,
-      meetingUrl: newMeetingUrl,
+      meetingUrl: newMeetingUrl || 'https://meet.google.com/jye-igap-skb',
+      isLiveNow: newDate === 'Today' || newDate.toLowerCase().includes('now'),
+      durationMinutes: 90,
     });
 
     setNewTitle('');
     setIsScheduleModalOpen(false);
-    showToast(`Session "${newSession.title}" scheduled & attendance roster created!`);
+    showToast(`Lecture "${newSession.title}" launched & broadcasted to students!`);
   };
 
   // Filtered Sessions

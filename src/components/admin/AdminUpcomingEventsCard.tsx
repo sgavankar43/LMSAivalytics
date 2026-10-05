@@ -17,10 +17,12 @@ import {
 interface AdminUpcomingEventsCardProps {
   events: SessionItem[];
   onAddEvent?: (event: Omit<SessionItem, 'id'>) => void;
+  onOpenCreateModal?: () => void;
 }
 
 export const AdminUpcomingEventsCard: React.FC<AdminUpcomingEventsCardProps> = ({
   events,
+  onOpenCreateModal,
 }) => {
   const { getSessionAttendance } = useAttendance();
 
@@ -39,14 +41,26 @@ export const AdminUpcomingEventsCard: React.FC<AdminUpcomingEventsCardProps> = (
             </div>
           </div>
 
-          <Link
-            href="/attendance?action=schedule"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#121614] text-white hover:bg-black transition-colors"
-            title="Schedule new session on Attendance page"
-          >
-            <Plus className="w-3.5 h-3.5 text-[#3ECE92]" />
-            <span>Schedule</span>
-          </Link>
+          {onOpenCreateModal ? (
+            <button
+              onClick={onOpenCreateModal}
+              id="admin-events-schedule-btn"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#121614] text-white hover:bg-black transition-colors"
+              title="Launch Live Lecture"
+            >
+              <Plus className="w-3.5 h-3.5 text-[#3ECE92]" />
+              <span>+ Lecture</span>
+            </button>
+          ) : (
+            <Link
+              href="/attendance?action=schedule"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#121614] text-white hover:bg-black transition-colors"
+              title="Schedule new session on Attendance page"
+            >
+              <Plus className="w-3.5 h-3.5 text-[#3ECE92]" />
+              <span>Schedule</span>
+            </Link>
+          )}
         </div>
 
         {/* Events List */}
@@ -123,15 +137,22 @@ export const AdminUpcomingEventsCard: React.FC<AdminUpcomingEventsCardProps> = (
 
                   {isLive ? (
                     <button
-                      onClick={() => alert('Launching active live classroom for faculty!')}
+                      onClick={() => {
+                        const url = event.meetingUrl || 'https://meet.google.com/jye-igap-skb';
+                        window.open(url, '_blank', 'noopener,noreferrer');
+                      }}
                       className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#3ECE92] text-[#111614] hover:bg-[#34be83] flex items-center gap-1 transition-transform hover:scale-105 shadow-sm"
+                      title="Join Google Meet Live Room"
                     >
                       <Video className="w-3 h-3 fill-current" />
                       <span>Join Room</span>
                     </button>
                   ) : (
                     <button
-                      onClick={() => alert('Opening event link: ' + (event.meetingUrl || event.recordingUrl))}
+                      onClick={() => {
+                        const url = event.meetingUrl || event.recordingUrl || 'https://meet.google.com/jye-igap-skb';
+                        window.open(url, '_blank', 'noopener,noreferrer');
+                      }}
                       className="p-2 rounded-xl text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors"
                       title="Open meeting room"
                     >

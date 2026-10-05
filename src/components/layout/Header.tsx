@@ -16,6 +16,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   X,
+  Video,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSidebar } from '@/context/SidebarContext';
@@ -202,6 +203,25 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
                             {n.message}
                           </p>
 
+                          {/* Join Live CTA if lecture/session meeting link */}
+                          {(n.actionUrl || n.type === 'session') && (
+                            <div className="mt-2.5">
+                              <a
+                                href={n.actionUrl || 'https://meet.google.com/jye-igap-skb'}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  markAsRead(n.id);
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#121614] text-white hover:bg-black transition-all shadow-xs"
+                              >
+                                <Video className="w-3.5 h-3.5 text-[#3ECE92]" />
+                                <span>Join Live</span>
+                              </a>
+                            </div>
+                          )}
+
                           <div className="flex items-center justify-between text-[10px] text-gray-400 mt-2 pt-1 border-t border-gray-100/70">
                             <span className="font-mono">{n.time}</span>
                             <div className="flex items-center gap-2">
@@ -236,7 +256,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[10px] font-mono font-bold text-[#3ECE92] uppercase tracking-wider">
-                  New Announcement
+                  {activeAlert.type === 'session' ? 'Live Classroom' : 'New Announcement'}
                 </span>
                 <span
                   className={`text-[9px] font-bold px-1.5 py-0.2 rounded uppercase ${
@@ -254,6 +274,20 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
               <p className="text-xs text-gray-300 mt-0.5 leading-relaxed line-clamp-3">
                 {activeAlert.message}
               </p>
+              {(activeAlert.actionUrl || activeAlert.type === 'session') && (
+                <div className="mt-2.5">
+                  <a
+                    href={activeAlert.actionUrl || 'https://meet.google.com/jye-igap-skb'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => dismissAlert()}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#3ECE92] text-[#111614] hover:bg-[#34be83] transition-all shadow-xs"
+                  >
+                    <Video className="w-3.5 h-3.5 fill-current" />
+                    <span>Join Live</span>
+                  </a>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               <button
