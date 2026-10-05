@@ -23,6 +23,7 @@ import {
 import { Logo } from '../common/Logo';
 import { useAuth } from '@/context/AuthContext';
 import { useSidebar } from '@/context/SidebarContext';
+import { useSupportTickets } from '@/context/SupportTicketContext';
 
 interface SidebarProps {
   onCloseMobile?: () => void;
@@ -36,6 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const pathname = usePathname();
   const { signOut, user } = useAuth();
   const { isCollapsed, toggleSidebar } = useSidebar();
+  const { openTicketsCount } = useSupportTickets();
 
   // If in mobile drawer, never show retracted state
   const collapsed = isMobileDrawer ? false : isCollapsed;
@@ -71,7 +73,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       name: 'Support',
       href: '/support',
       icon: Ticket,
-      badge: 2,
+      badge: openTicketsCount > 0 ? openTicketsCount : undefined,
       active: pathname.startsWith('/support'),
     },
     {
@@ -126,7 +128,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       name: 'Support Tickets',
       href: '/support',
       icon: Ticket,
-      badge: 2,
+      badge: openTicketsCount > 0 ? openTicketsCount : undefined,
       active: pathname.startsWith('/support'),
     },
     {

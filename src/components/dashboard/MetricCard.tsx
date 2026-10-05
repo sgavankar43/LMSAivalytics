@@ -1,12 +1,14 @@
-import React from 'react';
+import Link from 'next/link';
 import { BookOpen, CheckCircle, Video, Ticket, Users, TrendingUp, AlertCircle } from 'lucide-react';
 import { MetricCardData } from '@/types';
 
 interface MetricCardProps {
   data: MetricCardData;
+  onClick?: () => void;
+  href?: string;
 }
 
-export const MetricCard: React.FC<MetricCardProps> = ({ data }) => {
+export const MetricCard: React.FC<MetricCardProps> = ({ data, onClick, href }) => {
   const renderIcon = () => {
     switch (data.icon) {
       case 'book':
@@ -41,8 +43,13 @@ export const MetricCard: React.FC<MetricCardProps> = ({ data }) => {
     }
   };
 
-  return (
-    <div className="bg-white rounded-2xl p-5 border border-[#eaedf0] shadow-[0_2px_10px_rgba(0,0,0,0.02)] card-hover flex flex-col justify-between">
+  const content = (
+    <div
+      onClick={onClick}
+      className={`bg-white rounded-2xl p-5 border border-[#eaedf0] shadow-[0_2px_10px_rgba(0,0,0,0.02)] card-hover flex flex-col justify-between h-full ${
+        href || onClick ? 'cursor-pointer hover:border-[#3ECE92]/60' : ''
+      }`}
+    >
       {/* Top row: Title and Icon */}
       <div className="flex items-center justify-between mb-4">
         <span className="text-sm font-medium text-gray-700">
@@ -68,4 +75,10 @@ export const MetricCard: React.FC<MetricCardProps> = ({ data }) => {
       </div>
     </div>
   );
+
+  if (href) {
+    return <Link href={href} className="block h-full">{content}</Link>;
+  }
+
+  return content;
 };

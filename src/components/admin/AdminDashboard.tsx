@@ -13,6 +13,7 @@ import { AdminEngagementChart } from '@/components/admin/AdminEngagementChart';
 import { AdminQuizStatsCard } from '@/components/admin/AdminQuizStatsCard';
 import { CsvQuizUploadModal } from '@/components/admin/CsvQuizUploadModal';
 import { useNotifications } from '@/context/NotificationContext';
+import { useSupportTickets } from '@/context/SupportTicketContext';
 import {
   initialAdminMetrics,
   initialAdminTasks,
@@ -32,6 +33,7 @@ export const AdminDashboard: React.FC = () => {
   const { sessions, addSession, overallInstitutionAttendance } = useAttendance();
   const { totalEnrolled, students } = useEnrollment();
   const { broadcasts, sendBroadcast } = useNotifications();
+  const { openTicketsCount, underReviewCount } = useSupportTickets();
 
   // State Management for Admin Operations
   const [tasks, setTasks] = useState<AdminTask[]>(initialAdminTasks);
@@ -116,6 +118,15 @@ export const AdminDashboard: React.FC = () => {
         ...metric,
         value: `${overallInstitutionAttendance}%`,
         changeText: `Across ${sessions.length} live sessions`,
+      };
+    }
+    if (metric.id === 'pending_tickets') {
+      const totalPending = openTicketsCount + underReviewCount;
+      return {
+        ...metric,
+        value: totalPending,
+        changeText: `${openTicketsCount} open, ${underReviewCount} under review`,
+        changeType: (totalPending > 0 ? 'alert' : 'positive') as 'alert' | 'positive',
       };
     }
     return metric;
@@ -214,7 +225,11 @@ export const AdminDashboard: React.FC = () => {
       {/* 1. Statistical Data KPI Overview (4 Metrics) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         {dynamicMetrics.map((card) => (
-          <MetricCard key={card.id} data={card} />
+          <MetricCard
+            key={card.id}
+            data={card}
+            href={card.id === 'pending_tickets' ? '/support' : card.id === 'total_students' ? '/enrollment' : undefined}
+          />
         ))}
       </div>
 

@@ -75,19 +75,33 @@ export interface Course {
   enrolledStudentsCount?: number;
 }
 
+export type TicketStatus = 'Open' | 'Under Review' | 'Completed' | 'Rejected' | 'In Progress' | 'Resolved';
+export type TicketCategory = 'Academic' | 'Technical' | 'Evaluation' | 'General';
+export type TicketPriority = 'Low' | 'Medium' | 'High';
+export type StudentFeedbackRating = 'Satisfied' | 'Not Satisfied';
+
 export interface SupportTicket {
   id: string;
   ticketId: string;
+  ticketCode?: string;
   subject: string;
   course: string;
-  category: 'Academic' | 'Technical' | 'Evaluation' | 'General';
-  status: 'Open' | 'In Progress' | 'Resolved';
-  priority: 'Low' | 'Medium' | 'High';
+  category: TicketCategory;
+  status: TicketStatus;
+  priority: TicketPriority;
   createdAt: string;
   lastUpdated: string;
   repliesCount: number;
   description: string;
   studentName?: string;
+  studentEmail?: string;
+  userId?: string;
+  adminRemarks?: string | null;
+  adminRespondedAt?: string | null;
+  adminRespondedBy?: string | null;
+  studentFeedback?: StudentFeedbackRating | null;
+  studentFeedbackNote?: string | null;
+  studentFeedbackAt?: string | null;
 }
 
 export interface CertificateItem {

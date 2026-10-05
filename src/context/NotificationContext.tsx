@@ -25,6 +25,14 @@ interface NotificationContextType {
   notifications: LMSNotification[];
   unreadCount: number;
   sendBroadcast: (data: Omit<BroadcastNotification, 'id' | 'sentAt' | 'readCount'>) => BroadcastNotification;
+  sendNotification: (data: {
+    title: string;
+    message: string;
+    priority?: 'Normal' | 'Important' | 'Urgent';
+    type?: 'ticket' | 'broadcast' | 'info' | 'warning' | 'success' | 'alert';
+    targetType?: 'all' | 'course' | 'individual';
+    targetValue?: string;
+  }) => Promise<void>;
   deleteBroadcast: (id: string) => void;
   cancelBroadcast: (id: string) => void;
   cancelNotification: (id: string) => void;
@@ -414,6 +422,64 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     []
   );
 
+  // Send Direct / System Notification (for tickets, evaluation, attendance, etc.)
+  const sendNotification = useCallback(
+    async (data: {
+      title: string;
+      message: string;
+      priority?: 'Normal' | 'Important' | 'Urgent';
+      type?: 'ticket' | 'broadcast' | 'info' | 'warning' | 'success' | 'alert';
+      targetType?: 'all' | 'course' | 'individual';
+      targetValue?: string;
+    }) => {
+      const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const notifType = data.type || 'info';
+      const newNotif: LMSNotification = {
+        id: notifId,
+        title: data.title,
+        message: data.message,
+        time: 'Just now',
+        priority: data.priority || 'Normal',
+        unread: true,
+        type: notifType,
+        targetType: data.targetType || 'all',
+        targetValue: data.targetValue,
+        createdAt: Date.now(),
+      };
+
+      setDbNotifications((prev) => [newNotif, ...prev]);
+
+      try {
+        const channel = supabase.channel(CHANNEL_NAME);
+        channel.send({
+          type: 'broadcast',
+          event: 'announcement',
+          payload: newNotif,
+        });
+      } catch (err) {
+        console.error('Supabase notification broadcast failed:', err);
+      }
+
+      try {
+        await supabase.from('Notification').insert([
+          {
+            title: data.title,
+            message: data.message,
+            type: notifType,
+            userId: data.targetType === 'individual' ? data.targetValue : null,
+            read: false,
+          },
+        ]);
+      } catch (err) {
+        console.error('Supabase Notification DB insert failed:', err);
+      }
+
+      playNotificationChime();
+      setActiveAlert(newNotif);
+    },
+    []
+  );
+
   // Cancel / Delete a notification completely
   const cancelNotification = useCallback((id: string) => {
     // 1. Mark as dismissed in localStorage state
@@ -551,6 +617,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         notifications,
         unreadCount,
         sendBroadcast,
+        sendNotification,
         deleteBroadcast,
         cancelBroadcast,
         cancelNotification,

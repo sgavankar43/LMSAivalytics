@@ -140,12 +140,25 @@ model Notification {
 }
 
 model SupportTicket {
-  id          String   @id @default(uuid())
-  userId      String
-  subject     String
-  description String
-  status      String   @default("OPEN") // "OPEN" | "RESOLVED"
-  createdAt   DateTime @default(now())
+  id                  String    @id @default(uuid())
+  ticketCode          String    @default("")
+  userId              String
+  studentName         String    @default("Alex Morgan")
+  studentEmail        String    @default("alex.morgan@aivalytics.com")
+  subject             String
+  description         String
+  course              String    @default("Academic Information")
+  category            String    @default("Academic")
+  priority            String    @default("Medium")
+  status              String    @default("Open") // "Open" | "Under Review" | "Completed" | "Rejected"
+  adminRemarks        String?
+  adminRespondedAt    DateTime?
+  adminRespondedBy    String?
+  studentFeedback     String?   // "Satisfied" | "Not Satisfied"
+  studentFeedbackNote String?
+  studentFeedbackAt   DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt @default(now())
 }
 
 model ClassSession {
