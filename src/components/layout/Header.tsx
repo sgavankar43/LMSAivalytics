@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import {
-  Search,
   Bell,
   BellRing,
   Menu,
@@ -18,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationContext';
+import { GlobalSearchBar } from './GlobalSearchBar';
 
 interface HeaderProps {
   onOpenMobile?: () => void;
@@ -38,7 +38,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
   return (
     <header className="sticky top-0 z-20 bg-[#f8faf9]/95 backdrop-blur-md border-b border-[#eaedf0] px-4 sm:px-8 py-3.5 flex items-center justify-between">
@@ -53,17 +52,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Global Search */}
-        <div className="relative w-full">
-          <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#f1f3f2] hover:bg-[#ebedec] focus:bg-white text-sm text-gray-900 placeholder:text-gray-400 rounded-xl pl-10 pr-4 py-2 border border-transparent focus:border-[#3ECE92] focus:ring-2 focus:ring-[#3ECE92]/20 transition-all outline-none"
-          />
-        </div>
+        {/* Global Search & Routing Engine */}
+        <GlobalSearchBar />
       </div>
 
       {/* Right Navigation & Profile */}

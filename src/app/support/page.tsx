@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { SupportTicket, TicketStatus, TicketCategory, TicketPriority, StudentFeedbackRating } from '@/types';
 import { useAuth } from '@/context/AuthContext';
@@ -55,6 +55,16 @@ export default function SupportPage() {
   // Modals & Selection
   const [showNewModal, setShowNewModal] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+
+  // Automatically open ticket modal when routed via search bar (?action=new)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('action') === 'new' || params.get('new') === 'true') {
+        setShowNewModal(true);
+      }
+    }
+  }, []);
 
   // New ticket form state
   const [newSubject, setNewSubject] = useState('');
