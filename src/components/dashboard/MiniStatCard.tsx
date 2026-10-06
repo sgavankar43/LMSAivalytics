@@ -16,8 +16,8 @@ export const MiniStatCard: React.FC<MiniStatCardProps> = ({
   icon,
   gaugeColor = '#3ECE92',
 }) => {
-  const size = 50;
-  const strokeWidth = 4.5;
+  const size = 44;
+  const strokeWidth = 4;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (Math.min(100, Math.max(0, percentage)) / 100) * circumference;
@@ -25,25 +25,25 @@ export const MiniStatCard: React.FC<MiniStatCardProps> = ({
   const renderIcon = () => {
     switch (icon) {
       case 'award':
-        return <Award className="w-4 h-4 text-[#059669]" />;
+        return <Award className="w-3.5 h-3.5 text-[#059669]" />;
       case 'ticket':
-        return <Ticket className="w-4 h-4 text-[#059669]" />;
+        return <Ticket className="w-3.5 h-3.5 text-[#059669]" />;
       case 'book':
-        return <BookOpen className="w-4 h-4 text-[#059669]" />;
+        return <BookOpen className="w-3.5 h-3.5 text-[#059669]" />;
       case 'video':
-        return <Video className="w-4 h-4 text-[#059669]" />;
+        return <Video className="w-3.5 h-3.5 text-[#059669]" />;
       case 'user-check':
-        return <UserCheck className="w-4 h-4 text-[#059669]" />;
+        return <UserCheck className="w-3.5 h-3.5 text-[#059669]" />;
       default:
-        return <Award className="w-4 h-4 text-[#059669]" />;
+        return <Award className="w-3.5 h-3.5 text-[#059669]" />;
     }
   };
 
   return (
-    <div className="bg-white rounded-2xl p-4 sm:p-4.5 border border-[#eaedf0] shadow-[0_2px_10px_rgba(0,0,0,0.02)] card-hover flex items-center justify-between gap-3 transition-all hover:border-gray-300">
-      <div className="flex items-center gap-3.5 min-w-0">
+    <div className="bg-white rounded-2xl p-3 sm:p-3.5 border border-[#eaedf0] shadow-[0_2px_10px_rgba(0,0,0,0.02)] card-hover flex items-center justify-between gap-3 transition-all hover:border-gray-300">
+      <div className="flex items-center gap-3 min-w-0">
         {/* Icon box */}
-        <div className="w-9 h-9 rounded-xl bg-[#e8f8f0] flex items-center justify-center border border-[#d1f4e2]/60 shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-[#e8f8f0] flex items-center justify-center border border-[#d1f4e2]/60 shrink-0">
           {renderIcon()}
         </div>
 

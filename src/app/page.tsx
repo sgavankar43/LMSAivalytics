@@ -204,7 +204,7 @@ export default function DashboardPage() {
           </div>
 
           {/* 2. Stack-based Attendance & Academic Progress Metrics */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 items-stretch">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 items-start">
             {/* Student Lecture Attendance & Reflection Stack Card (Span 2 cols on lg) */}
             <div className="lg:col-span-2">
               <StudentAttendanceStackCard
@@ -214,7 +214,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Academic Milestone & Progress Stat Cards Column (Span 1 col on lg) */}
-            <div className="flex flex-col justify-between gap-3 sm:gap-3.5 h-full">
+            <div className="flex flex-col gap-2.5 sm:gap-2.5">
               {/* 1. Certificate issued */}
               <MiniStatCard
                 title="Certificates issued"
