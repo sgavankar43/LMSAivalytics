@@ -124,7 +124,7 @@ export const initialBroadcasts: BroadcastNotification[] = [
 
 export const initialImportedStudents: ImportedStudent[] = [
   {
-    id: 'std_1',
+    id: 'STD_1',
     fullName: 'Alex Morgan',
     email: 'alex.morgan@aivalytics.com',
     courseCode: 'ACA-101',
@@ -134,7 +134,7 @@ export const initialImportedStudents: ImportedStudent[] = [
     status: 'Active',
   },
   {
-    id: 'std_2',
+    id: 'STD_2',
     fullName: 'Sarah Connor',
     email: 'sarah.connor@aivalytics.com',
     courseCode: 'BRM-204',
@@ -144,7 +144,7 @@ export const initialImportedStudents: ImportedStudent[] = [
     status: 'Active',
   },
   {
-    id: 'std_3',
+    id: 'STD_3',
     fullName: 'Emily Watson',
     email: 'emily.watson@aivalytics.com',
     courseCode: 'AML-305',
@@ -154,7 +154,7 @@ export const initialImportedStudents: ImportedStudent[] = [
     status: 'Active',
   },
   {
-    id: 'std_4',
+    id: 'STD_4',
     fullName: 'David Miller',
     email: 'david.miller@aivalytics.com',
     courseCode: 'AML-305',
@@ -164,7 +164,7 @@ export const initialImportedStudents: ImportedStudent[] = [
     status: 'Active',
   },
   {
-    id: 'std_5',
+    id: 'STD_5',
     fullName: 'Sophia Patel',
     email: 'sophia.p@aivalytics.com',
     courseCode: 'ACA-101',
@@ -174,7 +174,7 @@ export const initialImportedStudents: ImportedStudent[] = [
     status: 'Active',
   },
   {
-    id: 'std_6',
+    id: 'STD_6',
     fullName: 'Liam Chen',
     email: 'liam.chen@aivalytics.com',
     courseCode: 'BRM-204',
@@ -185,7 +185,7 @@ export const initialImportedStudents: ImportedStudent[] = [
   },
 ];
 
-export const sampleCsvTemplate = `fullName,email,courseCode,term
-Elena Rostova,elena.r@aivalytics.com,ACA-101,Fall 2026
-Marcus Thorne,marcus.t@aivalytics.com,BRM-204,Fall 2026
-Aisha Khan,aisha.k@aivalytics.com,AML-305,Fall 2026`;
+export const sampleCsvTemplate = `Student ID,Full Name,Email,Course Code,Course Name,Term,Status,Enrolled Date
+STD_7,Elena Rostova,elena.r@aivalytics.com,ACA-101,Academic Information & Governance,Fall 2026,Active,Aug 15 2026
+STD_8,Marcus Thorne,marcus.t@aivalytics.com,BRM-204,Business Research Methodologies,Fall 2026,Active,Aug 15 2026
+STD_9,Aisha Khan,aisha.k@aivalytics.com,AML-305,Applied AI & Neural Predictive Analytics,Fall 2026,Active,Aug 15 2026`;

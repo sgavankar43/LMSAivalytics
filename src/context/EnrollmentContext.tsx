@@ -46,7 +46,32 @@ export const EnrollmentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, [students]);
 
   const importStudents = (newStudents: ImportedStudent[]) => {
-    setStudents((prev) => [...newStudents, ...prev]);
+    setStudents((prev) => {
+      let maxNum = 0;
+      prev.forEach((s) => {
+        const match = s.id.match(/\d+/);
+        if (match) {
+          const num = parseInt(match[0], 10);
+          if (!isNaN(num) && num > maxNum) maxNum = num;
+        }
+      });
+
+      const existingIds = new Set(prev.map((s) => s.id.toUpperCase()));
+
+      const processed = newStudents.map((s) => {
+        let candidateId = s.id ? s.id.trim().toUpperCase() : '';
+
+        if (!candidateId || existingIds.has(candidateId)) {
+          maxNum++;
+          candidateId = `STD_${maxNum}`;
+        }
+
+        existingIds.add(candidateId);
+        return { ...s, id: candidateId };
+      });
+
+      return [...processed, ...prev];
+    });
   };
 
   const deleteStudent = (id: string) => {

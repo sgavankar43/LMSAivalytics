@@ -358,7 +358,7 @@ export default function EnrollmentPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredStudents.map((student) => {
+                  filteredStudents.map((student, index) => {
                     const isActive = student.status === 'Active';
                     const initials = student.fullName
                       .split(' ')
@@ -368,7 +368,7 @@ export default function EnrollmentPage() {
                       .slice(0, 2);
 
                     return (
-                      <tr key={student.id} className="hover:bg-gray-50/70 transition-colors">
+                      <tr key={`${student.id}_${index}`} className="hover:bg-gray-50/70 transition-colors">
                         {/* Student Name & Avatar */}
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3">
