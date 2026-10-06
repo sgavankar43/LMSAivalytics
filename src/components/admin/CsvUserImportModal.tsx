@@ -21,13 +21,37 @@ interface CsvUserImportModalProps {
 }
 
 interface ParsedRow {
+  id: string;
   fullName: string;
   email: string;
   courseCode: string;
+  courseName: string;
   term: string;
+  status: 'Active' | 'Pending';
+  enrolledAt: string;
   isValid: boolean;
   error?: string;
 }
+
+// Quote-aware CSV line splitter
+const parseCsvLine = (line: string): string[] => {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim().replace(/^"(.*)"$/, '$1').trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current.trim().replace(/^"(.*)"$/, '$1').trim());
+  return result;
+};
 
 export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
   isOpen,
@@ -50,6 +74,7 @@ export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -77,23 +102,91 @@ export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
         return;
       }
 
-      // Check header
+      // Check header row for dynamic index mapping
+      const headerParts = parseCsvLine(lines[0]).map((h) =>
+        h.toLowerCase().replace(/[^a-z0-9]/g, '')
+      );
+
+      let idIdx = headerParts.findIndex(
+        (h) => h === 'studentid' || h === 'id' || h === 'stdid'
+      );
+      let nameIdx = headerParts.findIndex(
+        (h) => h === 'fullname' || h === 'name' || h === 'studentname'
+      );
+      let emailIdx = headerParts.findIndex(
+        (h) => h === 'email' || h === 'emailaddress'
+      );
+      let codeIdx = headerParts.findIndex(
+        (h) => h === 'coursecode' || h === 'code'
+      );
+      let courseNameIdx = headerParts.findIndex(
+        (h) => h === 'coursename' || h === 'course'
+      );
+      let termIdx = headerParts.findIndex(
+        (h) => h === 'term' || h === 'cohortterm'
+      );
+      let statusIdx = headerParts.findIndex(
+        (h) => h === 'status' || h === 'enrollmentstatus'
+      );
+      let dateIdx = headerParts.findIndex(
+        (h) => h === 'enrolleddate' || h === 'enrolledat' || h === 'date'
+      );
+
+      // Fallback positional indexing if header doesn't specify explicit column names
+      const firstRowParts = parseCsvLine(lines[1]);
+      if (nameIdx === -1 && emailIdx === -1) {
+        if (firstRowParts.length >= 8) {
+          idIdx = 0;
+          nameIdx = 1;
+          emailIdx = 2;
+          codeIdx = 3;
+          courseNameIdx = 4;
+          termIdx = 5;
+          statusIdx = 6;
+          dateIdx = 7;
+        } else {
+          nameIdx = 0;
+          emailIdx = 1;
+          codeIdx = 2;
+          termIdx = 3;
+        }
+      }
+
+      const courseMap: Record<string, string> = {
+        'ACA-101': 'Academic Information & Governance',
+        'BRM-204': 'Business Research Methodologies',
+        'AML-305': 'Applied AI & Neural Predictive Analytics',
+      };
+
       const rows: ParsedRow[] = [];
       for (let i = 1; i < lines.length; i++) {
-        const parts = lines[i].split(',').map((p) => p.trim());
+        const parts = parseCsvLine(lines[i]);
         if (parts.length >= 2) {
-          const fullName = parts[0] || 'Learner';
-          const email = parts[1] || '';
-          const courseCode = parts[2] || 'ACA-101';
-          const term = parts[3] || 'Fall 2026';
+          const email = emailIdx !== -1 && parts[emailIdx] ? parts[emailIdx] : '';
+          const fullName = nameIdx !== -1 && parts[nameIdx] ? parts[nameIdx] : 'Learner';
+          const courseCode = codeIdx !== -1 && parts[codeIdx] ? parts[codeIdx] : 'ACA-101';
+          const courseName =
+            courseNameIdx !== -1 && parts[courseNameIdx]
+              ? parts[courseNameIdx]
+              : courseMap[courseCode] || 'Core Curriculum';
+          const term = termIdx !== -1 && parts[termIdx] ? parts[termIdx] : 'Fall 2026';
+          const statusRaw = statusIdx !== -1 && parts[statusIdx] ? parts[statusIdx] : 'Active';
+          const status: 'Active' | 'Pending' =
+            statusRaw.toLowerCase() === 'pending' ? 'Pending' : 'Active';
+          const enrolledAt = dateIdx !== -1 && parts[dateIdx] ? parts[dateIdx] : 'Today';
+          const id = idIdx !== -1 && parts[idIdx] ? parts[idIdx].toUpperCase() : '';
 
           const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
           rows.push({
+            id,
             fullName,
             email,
             courseCode,
+            courseName,
             term,
+            status,
+            enrolledAt,
             isValid: isValidEmail,
             error: !isValidEmail ? 'Invalid email format' : undefined,
           });
@@ -111,21 +204,15 @@ export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
     const validRows = parsedRows.filter((r) => r.isValid);
     if (validRows.length === 0) return;
 
-    const courseMap: Record<string, string> = {
-      'ACA-101': 'Academic Information & Governance',
-      'BRM-204': 'Business Research Methodologies',
-      'AML-305': 'Applied AI & Neural Predictive Analytics',
-    };
-
-    const newStudents: ImportedStudent[] = validRows.map((r, idx) => ({
-      id: 'imp_' + Date.now() + '_' + idx,
+    const newStudents: ImportedStudent[] = validRows.map((r) => ({
+      id: r.id,
       fullName: r.fullName,
       email: r.email,
       courseCode: r.courseCode,
-      courseName: courseMap[r.courseCode] || 'Core Curriculum',
+      courseName: r.courseName || 'Core Curriculum',
       term: r.term,
-      enrolledAt: 'Today',
-      status: 'Active',
+      enrolledAt: r.enrolledAt || 'Today',
+      status: r.status || 'Active',
     }));
 
     onImportStudents(newStudents);
@@ -141,7 +228,7 @@ export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
@@ -177,10 +264,13 @@ export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
           <div className="mt-5 space-y-4">
             {/* Step 1: Download Sample Template */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-[#f8faf9] rounded-2xl border border-gray-200/70">
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 min-w-0">
                 <span className="text-xs font-bold text-gray-800">Need a CSV template?</span>
-                <p className="text-[11px] text-gray-500">
-                  Headers: <code className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border">fullName,email,courseCode,term</code>
+                <p className="text-[11px] text-gray-500 overflow-x-auto whitespace-nowrap">
+                  Headers:{' '}
+                  <code className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border text-[#059669]">
+                    Student ID,Full Name,Email,Course Code,Course Name,Term,Status,Enrolled Date
+                  </code>
                 </p>
               </div>
 
@@ -207,7 +297,7 @@ export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
                 {fileName ? fileName : 'Click or drag & drop CSV file to upload'}
               </p>
               <p className="text-[10px] text-gray-400 mt-1">
-                Supports comma-separated UTF-8 values (.csv)
+                Supports standard 8-field exported rosters & comma-separated UTF-8 values (.csv)
               </p>
             </div>
 
@@ -223,24 +313,28 @@ export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
                   </span>
                 </div>
 
-                <div className="border border-gray-200 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
+                <div className="border border-gray-200 rounded-xl overflow-hidden max-h-52 overflow-y-auto">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 font-semibold">
                       <tr>
+                        <th className="py-2 px-3">Student ID</th>
                         <th className="py-2 px-3">Full Name</th>
                         <th className="py-2 px-3">Email Address</th>
                         <th className="py-2 px-3">Course Code</th>
                         <th className="py-2 px-3">Term</th>
-                        <th className="py-2 px-3 text-right">Status</th>
+                        <th className="py-2 px-3">Enrolled Date</th>
+                        <th className="py-2 px-3 text-right">Validation</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {parsedRows.map((row, idx) => (
                         <tr key={idx} className={row.isValid ? 'bg-white' : 'bg-red-50/50'}>
+                          <td className="py-2 px-3 font-mono text-gray-500 text-[11px]">{row.id}</td>
                           <td className="py-2 px-3 font-semibold text-gray-900">{row.fullName}</td>
                           <td className="py-2 px-3 font-mono text-gray-600">{row.email}</td>
                           <td className="py-2 px-3 font-mono text-gray-700">{row.courseCode}</td>
                           <td className="py-2 px-3 text-gray-500">{row.term}</td>
+                          <td className="py-2 px-3 text-gray-400 font-mono text-[11px]">{row.enrolledAt}</td>
                           <td className="py-2 px-3 text-right">
                             {row.isValid ? (
                               <span className="text-[10px] font-bold text-[#059669] bg-[#e8f8f0] px-2 py-0.5 rounded-full">
@@ -286,3 +380,4 @@ export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
     </div>
   );
 };
+
