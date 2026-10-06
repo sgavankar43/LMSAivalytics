@@ -13,13 +13,10 @@ import {
   User,
   ChevronRight,
   LogOut,
-  PanelLeftClose,
-  PanelLeftOpen,
   X,
   Video,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { useSidebar } from '@/context/SidebarContext';
 import { useNotifications } from '@/context/NotificationContext';
 
 interface HeaderProps {
@@ -28,7 +25,6 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
   const { user, signOut, switchRole } = useAuth();
-  const { isCollapsed, toggleSidebar } = useSidebar();
   const {
     notifications,
     unreadCount,
@@ -46,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
 
   return (
     <header className="sticky top-0 z-20 bg-[#f8faf9]/95 backdrop-blur-md border-b border-[#eaedf0] px-4 sm:px-8 py-3.5 flex items-center justify-between">
-      {/* Mobile Hamburger & Desktop Retract Button & Search Bar */}
+      {/* Mobile Hamburger & Search Bar */}
       <div className="flex items-center gap-2 sm:gap-3 flex-1 max-w-md">
         {/* Mobile Hamburger */}
         <button
@@ -55,20 +51,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
           aria-label="Open mobile navigation"
         >
           <Menu className="w-5 h-5" />
-        </button>
-
-        {/* Desktop Retract Toggle Button in Header */}
-        <button
-          onClick={toggleSidebar}
-          className="hidden lg:flex p-2 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-[#eef2f0] transition-colors"
-          title={isCollapsed ? 'Expand navbar' : 'Retract navbar'}
-          aria-label={isCollapsed ? 'Expand navbar' : 'Retract navbar'}
-        >
-          {isCollapsed ? (
-            <PanelLeftOpen className="w-4 h-4 text-gray-700" />
-          ) : (
-            <PanelLeftClose className="w-4 h-4 text-gray-500" />
-          )}
         </button>
 
         {/* Global Search */}
