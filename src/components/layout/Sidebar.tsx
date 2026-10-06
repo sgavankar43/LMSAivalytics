@@ -37,7 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const pathname = usePathname();
   const { signOut, user } = useAuth();
   const { isCollapsed, toggleSidebar } = useSidebar();
-  const { openTicketsCount } = useSupportTickets();
+  const { openTicketsCount, myOpenTicketsCount } = useSupportTickets();
 
   // If in mobile drawer, never show retracted state
   const collapsed = isMobileDrawer ? false : isCollapsed;
@@ -73,7 +73,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       name: 'Support',
       href: '/support',
       icon: Ticket,
-      badge: openTicketsCount > 0 ? openTicketsCount : undefined,
+      badge: myOpenTicketsCount > 0 ? myOpenTicketsCount : undefined,
       active: pathname.startsWith('/support'),
     },
     {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { MetricCard } from '@/components/dashboard/MetricCard';
 import { StudentAttendanceStackCard } from '@/components/dashboard/StudentAttendanceStackCard';
@@ -15,6 +15,7 @@ import {
 } from '@/data/mockData';
 import { useAuth } from '@/context/AuthContext';
 import { useAttendance } from '@/context/AttendanceContext';
+import { useSupportTickets } from '@/context/SupportTicketContext';
 import { parseDbTimestamp } from '@/lib/dateUtils';
 import Link from 'next/link';
 import { Calendar, ChevronDown, FileCheck, ArrowRight, Video, Clock, User, ExternalLink } from 'lucide-react';
@@ -22,6 +23,13 @@ import { Calendar, ChevronDown, FileCheck, ArrowRight, Video, Clock, User, Exter
 export default function DashboardPage() {
   const { user, role, isLoading } = useAuth();
   const { getStudentAttendance, sessions, activeLiveSession } = useAttendance();
+  const {
+    myTotalTicketsCount,
+    myCompletedCount,
+    myOpenTicketsCount,
+    myUnderReviewCount,
+  } = useSupportTickets();
+
   const [selectedRange, setSelectedRange] = useState('Aug 1 - Aug 31, 2026');
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -38,6 +46,34 @@ export default function DashboardPage() {
   // Dynamic live attendance calculation for the student
   const studentEmail = user?.email || 'alex.morgan@aivalytics.com';
   const studentAttendance = getStudentAttendance(studentEmail);
+
+  // Dynamic user support ticket statistics
+  const userActiveTickets = myOpenTicketsCount + myUnderReviewCount;
+  const userTicketsResolvedPercentage =
+    myTotalTicketsCount > 0
+      ? Math.round((myCompletedCount / myTotalTicketsCount) * 100)
+      : 0;
+
+  const dynamicMetricCards = useMemo(() => {
+    return mockMetricCards.map((card) => {
+      if (card.id === 'support_tickets') {
+        return {
+          ...card,
+          value: myTotalTicketsCount,
+          changeText:
+            myTotalTicketsCount === 0
+              ? 'No tickets filed'
+              : myCompletedCount > 0
+              ? `✓ ${myCompletedCount} resolved • ${userActiveTickets} open`
+              : userActiveTickets > 0
+              ? `⏱ ${userActiveTickets} open`
+              : 'All resolved',
+          changeType: userActiveTickets > 0 ? ('alert' as const) : ('positive' as const),
+        };
+      }
+      return card;
+    });
+  }, [myTotalTicketsCount, myCompletedCount, userActiveTickets]);
 
   if (isLoading) {
     return (
@@ -198,8 +234,12 @@ export default function DashboardPage() {
 
           {/* 1. Metric Cards Grid (4 in a row) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-            {mockMetricCards.map((card) => (
-              <MetricCard key={card.id} data={card} />
+            {dynamicMetricCards.map((card) => (
+              <MetricCard
+                key={card.id}
+                data={card}
+                href={card.id === 'support_tickets' ? '/support' : undefined}
+              />
             ))}
           </div>
 
@@ -242,9 +282,14 @@ export default function DashboardPage() {
               {/* 4. Ticket resolve */}
               <MiniStatCard
                 title="Tickets resolved"
-                subtitle="0 of 2 closed • 2 open"
-                percentage={0}
+                subtitle={
+                  myTotalTicketsCount === 0
+                    ? '0 of 0 closed • 0 open'
+                    : `${myCompletedCount} of ${myTotalTicketsCount} closed • ${userActiveTickets} open`
+                }
+                percentage={userTicketsResolvedPercentage}
                 icon="ticket"
+                href="/support"
               />
             </div>
           </div>

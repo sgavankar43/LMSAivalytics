@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { Award, Ticket, BookOpen, Video, UserCheck } from 'lucide-react';
 
 interface MiniStatCardProps {
@@ -7,6 +8,8 @@ interface MiniStatCardProps {
   percentage: number;
   icon: 'award' | 'ticket' | 'book' | 'video' | 'user-check';
   gaugeColor?: string;
+  href?: string;
+  onClick?: () => void;
 }
 
 export const MiniStatCard: React.FC<MiniStatCardProps> = ({
@@ -15,6 +18,8 @@ export const MiniStatCard: React.FC<MiniStatCardProps> = ({
   percentage,
   icon,
   gaugeColor = '#3ECE92',
+  href,
+  onClick,
 }) => {
   const size = 44;
   const strokeWidth = 4;
@@ -39,8 +44,13 @@ export const MiniStatCard: React.FC<MiniStatCardProps> = ({
     }
   };
 
-  return (
-    <div className="bg-white rounded-2xl p-3 sm:p-3.5 border border-[#eaedf0] shadow-[0_2px_10px_rgba(0,0,0,0.02)] card-hover flex items-center justify-between gap-3 transition-all hover:border-gray-300">
+  const cardContent = (
+    <div
+      onClick={onClick}
+      className={`bg-white rounded-2xl p-3 sm:p-3.5 border border-[#eaedf0] shadow-[0_2px_10px_rgba(0,0,0,0.02)] card-hover flex items-center justify-between gap-3 transition-all ${
+        href || onClick ? 'cursor-pointer hover:border-[#3ECE92]/80 hover:shadow-md' : 'hover:border-gray-300'
+      }`}
+    >
       <div className="flex items-center gap-3 min-w-0">
         {/* Icon box */}
         <div className="w-8 h-8 rounded-lg bg-[#e8f8f0] flex items-center justify-center border border-[#d1f4e2]/60 shrink-0">
@@ -48,7 +58,7 @@ export const MiniStatCard: React.FC<MiniStatCardProps> = ({
         </div>
 
         <div className="min-w-0">
-          <h4 className="text-xs sm:text-sm font-bold text-gray-800 truncate">
+          <h4 className="text-xs sm:text-sm font-bold text-gray-800 truncate group-hover:text-emerald-900 transition-colors">
             {title}
           </h4>
           <p className="text-[11px] text-gray-400 mt-0.5 font-medium truncate">
@@ -87,4 +97,14 @@ export const MiniStatCard: React.FC<MiniStatCardProps> = ({
       </div>
     </div>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="block group">
+        {cardContent}
+      </Link>
+    );
+  }
+
+  return cardContent;
 };

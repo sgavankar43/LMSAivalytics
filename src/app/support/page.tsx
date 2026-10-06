@@ -33,10 +33,15 @@ export default function SupportPage() {
 
   const {
     tickets,
+    myTickets,
     isLoading,
     openTicketsCount,
     underReviewCount,
     completedCount,
+    myOpenTicketsCount,
+    myUnderReviewCount,
+    myCompletedCount,
+    myTotalTicketsCount,
     createTicket,
     respondToTicket,
     submitStudentFeedback,
@@ -46,7 +51,6 @@ export default function SupportPage() {
   // Search & Filtering
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | TicketStatus>('All');
-  const [showMyTicketsOnly, setShowMyTicketsOnly] = useState(false);
 
   // Modals & Selection
   const [showNewModal, setShowNewModal] = useState(false);
@@ -77,11 +81,22 @@ export default function SupportPage() {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  // Find currently selected ticket from live tickets array
+  // Base tickets: Students strictly see ONLY their own tickets. Admins see all tickets across cohorts.
+  const baseTickets = useMemo(() => {
+    if (isAdmin) return tickets;
+    return myTickets;
+  }, [isAdmin, tickets, myTickets]);
+
+  const displayTotal = isAdmin ? tickets.length : myTotalTicketsCount;
+  const displayOpen = isAdmin ? openTicketsCount : myOpenTicketsCount;
+  const displayUnderReview = isAdmin ? underReviewCount : myUnderReviewCount;
+  const displayCompleted = isAdmin ? completedCount : myCompletedCount;
+
+  // Find currently selected ticket from base tickets array
   const selectedTicket = useMemo(() => {
     if (!selectedTicketId) return null;
-    return tickets.find((t) => t.id === selectedTicketId || t.ticketCode === selectedTicketId) || null;
-  }, [tickets, selectedTicketId]);
+    return baseTickets.find((t) => t.id === selectedTicketId || t.ticketCode === selectedTicketId) || null;
+  }, [baseTickets, selectedTicketId]);
 
   // When a ticket is opened, prefill response input fields
   const handleOpenTicket = (ticket: SupportTicket) => {
@@ -163,15 +178,7 @@ export default function SupportPage() {
 
   // Filtered Tickets
   const filteredTickets = useMemo(() => {
-    return tickets.filter((tkt) => {
-      // My tickets only filter for learners
-      if (showMyTicketsOnly && user?.email) {
-        const matchesUser =
-          tkt.studentEmail?.toLowerCase() === user.email.toLowerCase() ||
-          tkt.userId?.toLowerCase() === user.email.toLowerCase();
-        if (!matchesUser) return false;
-      }
-
+    return baseTickets.filter((tkt) => {
       // Keyword search
       const query = search.toLowerCase();
       const matchesSearch =
@@ -195,7 +202,7 @@ export default function SupportPage() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [tickets, search, statusFilter, showMyTicketsOnly, user?.email]);
+  }, [baseTickets, search, statusFilter]);
 
   return (
     <AppShell>
@@ -260,8 +267,10 @@ export default function SupportPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-white p-4 rounded-2xl border border-[#eaedf0] shadow-xs flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-medium text-gray-500">Total Tickets</p>
-              <p className="text-xl font-bold text-gray-900 mt-0.5">{tickets.length}</p>
+              <p className="text-[11px] font-medium text-gray-500">
+                {isAdmin ? 'Total Tickets' : 'My Total Tickets'}
+              </p>
+              <p className="text-xl font-bold text-gray-900 mt-0.5">{displayTotal}</p>
             </div>
             <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center">
               <Ticket className="w-4 h-4 text-gray-600" />
@@ -270,8 +279,10 @@ export default function SupportPage() {
 
           <div className="bg-white p-4 rounded-2xl border border-[#eaedf0] shadow-xs flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-medium text-amber-700">Open Tickets</p>
-              <p className="text-xl font-bold text-amber-800 mt-0.5">{openTicketsCount}</p>
+              <p className="text-[11px] font-medium text-amber-700">
+                {isAdmin ? 'Open Tickets' : 'My Open Tickets'}
+              </p>
+              <p className="text-xl font-bold text-amber-800 mt-0.5">{displayOpen}</p>
             </div>
             <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center border border-amber-200">
               <AlertCircle className="w-4 h-4 text-amber-600" />
@@ -281,7 +292,7 @@ export default function SupportPage() {
           <div className="bg-white p-4 rounded-2xl border border-[#eaedf0] shadow-xs flex items-center justify-between">
             <div>
               <p className="text-[11px] font-medium text-blue-700">Under Review</p>
-              <p className="text-xl font-bold text-blue-800 mt-0.5">{underReviewCount}</p>
+              <p className="text-xl font-bold text-blue-800 mt-0.5">{displayUnderReview}</p>
             </div>
             <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center border border-blue-200">
               <Clock className="w-4 h-4 text-blue-600" />
@@ -290,8 +301,10 @@ export default function SupportPage() {
 
           <div className="bg-white p-4 rounded-2xl border border-[#eaedf0] shadow-xs flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-medium text-[#059669]">Completed</p>
-              <p className="text-xl font-bold text-[#059669] mt-0.5">{completedCount}</p>
+              <p className="text-[11px] font-medium text-[#059669]">
+                {isAdmin ? 'Completed' : 'Resolved'}
+              </p>
+              <p className="text-xl font-bold text-[#059669] mt-0.5">{displayCompleted}</p>
             </div>
             <div className="w-8 h-8 rounded-xl bg-[#e8f8f0] flex items-center justify-center border border-[#d1f4e2]">
               <CheckCircle2 className="w-4 h-4 text-[#059669]" />
@@ -306,7 +319,7 @@ export default function SupportPage() {
             <input
               type="text"
               id="ticket-search-input"
-              placeholder="Search by ID, student, keyword, or course..."
+              placeholder={isAdmin ? "Search by ID, student, keyword, or course..." : "Search your tickets by ID, keyword, or course..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-[#f8faf9] text-xs sm:text-sm text-gray-900 rounded-xl pl-9 pr-4 py-2.5 border border-gray-200/70 focus:outline-none focus:border-[#3ECE92]"
@@ -314,19 +327,6 @@ export default function SupportPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5">
-            {!isAdmin && (
-              <button
-                onClick={() => setShowMyTicketsOnly(!showMyTicketsOnly)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors border ${
-                  showMyTicketsOnly
-                    ? 'bg-[#3ECE92]/15 text-[#059669] border-[#3ECE92]'
-                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                My Tickets Only
-              </button>
-            )}
-
             {(['All', 'Open', 'Under Review', 'Completed', 'Rejected'] as const).map((status) => (
               <button
                 key={status}
@@ -348,20 +348,33 @@ export default function SupportPage() {
           {filteredTickets.length === 0 ? (
             <div className="bg-white rounded-3xl p-12 text-center border border-[#eaedf0] shadow-xs">
               <HelpCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-base font-semibold text-gray-800">No tickets found</p>
-              <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
-                No tickets match your filter criteria. Try clearing filters or submit a new query.
+              <p className="text-base font-semibold text-gray-800">
+                {baseTickets.length === 0 ? 'No tickets submitted yet' : 'No tickets found'}
               </p>
-              <button
-                onClick={() => {
-                  setSearch('');
-                  setStatusFilter('All');
-                  setShowMyTicketsOnly(false);
-                }}
-                className="mt-4 text-xs font-semibold text-[#059669] hover:underline"
-              >
-                Reset all filters
-              </button>
+              <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
+                {baseTickets.length === 0
+                  ? 'You have not submitted any support tickets. Click "Create New Ticket" to report an issue or ask a question.'
+                  : 'No tickets match your filter criteria. Try clearing filters or submit a new query.'}
+              </p>
+              {baseTickets.length > 0 ? (
+                <button
+                  onClick={() => {
+                    setSearch('');
+                    setStatusFilter('All');
+                  }}
+                  className="mt-4 text-xs font-semibold text-[#059669] hover:underline"
+                >
+                  Reset all filters
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowNewModal(true)}
+                  className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-[#121614] text-white hover:bg-black transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5 text-[#3ECE92]" />
+                  <span>Create Your First Ticket</span>
+                </button>
+              )}
             </div>
           ) : (
             filteredTickets.map((ticket) => {

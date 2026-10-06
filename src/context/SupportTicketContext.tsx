@@ -8,10 +8,16 @@ import { supabase } from '@/lib/supabase/client';
 
 interface SupportTicketContextType {
   tickets: SupportTicket[];
+  myTickets: SupportTicket[];
+  getUserTickets: (email?: string, id?: string) => SupportTicket[];
   isLoading: boolean;
   openTicketsCount: number;
   underReviewCount: number;
   completedCount: number;
+  myOpenTicketsCount: number;
+  myUnderReviewCount: number;
+  myCompletedCount: number;
+  myTotalTicketsCount: number;
   createTicket: (data: {
     subject: string;
     description: string;
@@ -508,7 +514,7 @@ export const SupportTicketProvider: React.FC<{ children: React.ReactNode }> = ({
     [tickets, sendNotification]
   );
 
-  // Metrics
+  // Metrics - Global (for Admin Console)
   const openTicketsCount = useMemo(() => {
     return tickets.filter((t) => t.status === 'Open').length;
   }, [tickets]);
@@ -521,14 +527,72 @@ export const SupportTicketProvider: React.FC<{ children: React.ReactNode }> = ({
     return tickets.filter((t) => t.status === 'Completed' || t.status === 'Resolved').length;
   }, [tickets]);
 
+  // Metrics - Current User / Student Specific
+  const myTickets = useMemo(() => {
+    if (!user) return [];
+    const email = user.email?.toLowerCase().trim();
+    const uid = user.id?.toLowerCase().trim();
+    const uname = user.name?.toLowerCase().trim();
+
+    return tickets.filter((t) => {
+      const tEmail = t.studentEmail?.toLowerCase().trim();
+      const tUid = t.userId?.toLowerCase().trim();
+      const tName = t.studentName?.toLowerCase().trim();
+
+      return (
+        (email && (tEmail === email || tUid === email)) ||
+        (uid && (tUid === uid || tEmail === uid)) ||
+        (uname && tName === uname)
+      );
+    });
+  }, [tickets, user]);
+
+  const getUserTickets = useCallback(
+    (targetEmail?: string, targetId?: string) => {
+      const email = (targetEmail || user?.email)?.toLowerCase().trim();
+      const uid = (targetId || user?.id)?.toLowerCase().trim();
+
+      return tickets.filter((t) => {
+        const tEmail = t.studentEmail?.toLowerCase().trim();
+        const tUid = t.userId?.toLowerCase().trim();
+
+        return (
+          (email && (tEmail === email || tUid === email)) ||
+          (uid && (tUid === uid || tEmail === uid))
+        );
+      });
+    },
+    [tickets, user]
+  );
+
+  const myOpenTicketsCount = useMemo(() => {
+    return myTickets.filter((t) => t.status === 'Open').length;
+  }, [myTickets]);
+
+  const myUnderReviewCount = useMemo(() => {
+    return myTickets.filter((t) => t.status === 'Under Review' || t.status === 'In Progress').length;
+  }, [myTickets]);
+
+  const myCompletedCount = useMemo(() => {
+    return myTickets.filter((t) => t.status === 'Completed' || t.status === 'Resolved').length;
+  }, [myTickets]);
+
+  const myTotalTicketsCount = myTickets.length;
+
   return (
     <SupportTicketContext.Provider
       value={{
         tickets,
+        myTickets,
+        getUserTickets,
         isLoading,
         openTicketsCount,
         underReviewCount,
         completedCount,
+        myOpenTicketsCount,
+        myUnderReviewCount,
+        myCompletedCount,
+        myTotalTicketsCount,
         createTicket,
         respondToTicket,
         submitStudentFeedback,
