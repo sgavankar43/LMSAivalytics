@@ -22,8 +22,14 @@ import {
   X,
   Compass,
   Zap,
+  UserCheck,
+  Users,
+  Video,
+  UserPlus,
+  BellRing,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { UserRole } from '@/types';
 
 export interface SearchItem {
   id: string;
@@ -37,6 +43,7 @@ export interface SearchItem {
   badgeColor?: string;
   action?: () => void;
   recommended?: boolean;
+  allowedRoles: UserRole[];
 }
 
 export const GlobalSearchBar: React.FC = () => {
@@ -50,61 +57,56 @@ export const GlobalSearchBar: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Search Registry
-  const searchItems: SearchItem[] = useMemo(() => [
-    // --- Pages & Workspaces ---
+  const currentRole: UserRole = user?.role === 'admin' ? 'admin' : 'learner';
+
+  // Comprehensive Search Registry with Strict Role Tagging
+  const allSearchItems: SearchItem[] = useMemo(() => [
+    // ==========================================
+    // 1. LEARNER-EXCLUSIVE PAGES & ACTIONS
+    // ==========================================
     {
-      id: 'page_dashboard',
-      title: 'Dashboard Overview',
-      description: 'Learner summary, metrics, live sessions & attendance stack',
+      id: 'page_dashboard_learner',
+      title: 'Learner Dashboard Overview',
+      description: 'Your learning metrics, live lectures, weekly activity & attendance stack',
       category: 'Pages',
       href: '/',
-      keywords: ['dashboard', 'home', 'overview', 'summary', 'stats', 'analytics', 'classes'],
+      keywords: ['dashboard', 'home', 'overview', 'metrics', 'sessions', 'attendance', 'alex morgan', 'student'],
       icon: LayoutDashboard,
-      badge: 'Main',
+      badge: 'Learner',
       badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       recommended: true,
+      allowedRoles: ['learner'],
     },
     {
-      id: 'page_courses',
-      title: 'My Courses & Curriculum',
-      description: 'Enrolled courses, active modules, syllabus and study materials',
-      category: 'Pages',
-      href: '/courses',
-      keywords: ['courses', 'curriculum', 'classes', 'syllabus', 'modules', 'study', 'lessons'],
-      icon: BookOpen,
-      badge: 'Academic',
-      badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
-      recommended: true,
-    },
-    {
-      id: 'page_assessments',
+      id: 'page_assessments_learner',
       title: 'Assessments & Project Submissions',
-      description: 'Guided project deliverables, milestone submissions, and review statuses',
+      description: 'Submit guided project deliverables, milestone files and view grades',
       category: 'Pages',
       href: '/assessments',
-      keywords: ['assessments', 'projects', 'submissions', 'homework', 'deliverables', 'milestones'],
+      keywords: ['assessments', 'projects', 'submissions', 'homework', 'deliverables', 'milestones', 'upload'],
       icon: FileCheck,
-      badge: 'Projects',
+      badge: 'Deliverables',
       badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       recommended: true,
+      allowedRoles: ['learner'],
     },
     {
-      id: 'page_quizzes',
-      title: 'Quizzes & Knowledge Checks',
-      description: 'Timed module quizzes, comprehension checks, and review attempts',
+      id: 'page_quizzes_learner',
+      title: 'Timed Quizzes & Knowledge Checks',
+      description: 'Take module quizzes, timed comprehension tests and review scored attempts',
       category: 'Pages',
       href: '/assessments?tab=quizzes',
-      keywords: ['quiz', 'quizzes', 'tests', 'knowledge checks', 'exam', 'multiple choice'],
+      keywords: ['quiz', 'quizzes', 'tests', 'knowledge checks', 'exam', 'multiple choice', 'scores'],
       icon: Award,
-      badge: 'Quiz',
+      badge: 'Quizzes',
       badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
       recommended: true,
+      allowedRoles: ['learner'],
     },
     {
-      id: 'page_support',
-      title: 'Support & Help Desk',
-      description: 'Submit tickets, contact faculty, view real-time resolutions',
+      id: 'page_support_learner',
+      title: 'Learner Support & Academic Helpdesk',
+      description: 'Submit inquiries, contact faculty and track real-time resolution remarks',
       category: 'Pages',
       href: '/support',
       keywords: ['support', 'help', 'tickets', 'issues', 'assistance', 'inquiry', 'helpdesk', 'resolution'],
@@ -112,119 +114,60 @@ export const GlobalSearchBar: React.FC = () => {
       badge: 'Help Desk',
       badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
       recommended: true,
+      allowedRoles: ['learner'],
     },
     {
-      id: 'page_performance',
-      title: 'Performance & Academic Progress',
-      description: 'GPA metrics, weekly study activity, and course completion rates',
-      category: 'Pages',
-      href: '/performance',
-      keywords: ['performance', 'gpa', 'grades', 'progress', 'analytics', 'completion', 'activity', 'hours'],
-      icon: BarChart2,
-      badge: 'Analytics',
-      badgeColor: 'bg-teal-50 text-teal-700 border-teal-200',
-      recommended: true,
-    },
-    {
-      id: 'page_events',
-      title: 'Events & Live Seminars',
-      description: 'Schedule of live classes, faculty office hours, and webinars',
-      category: 'Pages',
-      href: '/events',
-      keywords: ['events', 'seminars', 'calendar', 'schedule', 'webinars', 'live', 'office hours', 'classes'],
-      icon: Calendar,
-      badge: 'Live',
-      badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
-      recommended: true,
-    },
-    {
-      id: 'page_attendance',
-      title: 'Attendance Records & Reflection Logs',
-      description: 'Track live attendance, absences, and personal lecture takeaways',
-      category: 'Pages',
-      href: '/attendance',
-      keywords: ['attendance', 'presence', 'absent', 'late', 'sessions', 'reflections', 'logs', 'stack'],
-      icon: CheckCircle2,
-      badge: 'Records',
-      badgeColor: 'bg-gray-100 text-gray-700 border-gray-200',
-      recommended: false,
-    },
-    {
-      id: 'page_profile',
-      title: 'My Profile & Credentials',
-      description: 'Academic identity, cohort details, bio, and student credentials',
+      id: 'page_profile_learner',
+      title: 'My Profile & Academic Credentials',
+      description: 'Student identity, GPA, enrolled cohort, and verified certificates',
       category: 'Pages',
       href: '/profile',
-      keywords: ['profile', 'account', 'student id', 'bio', 'credentials', 'alex morgan', 'settings', 'details'],
+      keywords: ['profile', 'account', 'student id', 'bio', 'credentials', 'certifications', 'alex morgan', 'settings'],
       icon: User,
       badge: 'Profile',
       badgeColor: 'bg-gray-100 text-gray-700 border-gray-200',
       recommended: false,
+      allowedRoles: ['learner'],
     },
     {
-      id: 'page_enrollment',
-      title: 'Cohort Enrollment Status',
-      description: 'Registration status and executive certification program roadmap',
+      id: 'page_student_attendance',
+      title: 'My Attendance & Lecture Reflections',
+      description: 'Review your live lecture attendance record and submitted reflection notes',
       category: 'Pages',
-      href: '/enrollment',
-      keywords: ['enrollment', 'register', 'cohort', 'term', 'admission', 'roadmap'],
-      icon: ShieldCheck,
-      badge: 'Cohort',
-      badgeColor: 'bg-gray-100 text-gray-700 border-gray-200',
-      recommended: false,
-    },
-
-    // --- Courses & Subjects ---
-    {
-      id: 'course_1',
-      title: 'Academic Information & Governance (ACA-101)',
-      description: 'Dean Dr. Evelyn Reed • Institutional policies, roadmaps, ethics',
-      category: 'Courses',
-      href: '/courses/course_1',
-      keywords: ['academic', 'governance', 'evelyn', 'reed', 'aca-101', 'ethics', 'policies', 'course 1'],
-      icon: BookOpen,
-      badge: 'Course',
-      badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
-      recommended: true,
-    },
-    {
-      id: 'course_2',
-      title: 'Business Research Methodologies (BRM-204)',
-      description: 'Dr. Sarah Jenkins • Qualitative & quantitative hypothesis testing',
-      category: 'Courses',
-      href: '/courses/course_2',
-      keywords: ['business', 'research', 'methodologies', 'jenkins', 'brm-204', 'hypothesis', 'testing', 'course 2'],
-      icon: BookOpen,
-      badge: 'Course',
-      badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
-      recommended: false,
-    },
-    {
-      id: 'course_3',
-      title: 'Applied AI Systems & Architecture (AI-301)',
-      description: 'Admin Faculty • LLM pipelines, autonomous agents, neural optimization',
-      category: 'Courses',
-      href: '/courses/course_3',
-      keywords: ['applied ai', 'systems', 'neural', 'optimization', 'transformers', 'agents', 'ai-301', 'course 3'],
-      icon: Sparkles,
-      badge: 'Course',
-      badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
-      recommended: true,
-    },
-    {
-      id: 'course_lecture_transformers',
-      title: 'Deep Neural Optimization & Transformers',
-      description: 'Session 4 • Gradient accumulation, batch sizing, attention masking',
-      category: 'Courses',
-      href: '/courses',
-      keywords: ['neural', 'optimization', 'transformers', 'session 4', 'deep neural', 'gradient', 'attention'],
-      icon: Sparkles,
-      badge: 'Lecture',
+      href: '/',
+      keywords: ['attendance', 'reflections', 'present', 'absent', 'sessions', 'lecture notes', 'reflection stack'],
+      icon: CheckCircle2,
+      badge: 'Attendance',
       badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       recommended: false,
+      allowedRoles: ['learner'],
     },
-
-    // --- Assessments & Projects ---
+    {
+      id: 'action_new_ticket',
+      title: 'Raise New Support Ticket',
+      description: 'Submit an academic, technical, or portal inquiry directly to faculty',
+      category: 'Actions',
+      href: '/support?action=new',
+      keywords: ['new ticket', 'create ticket', 'raise ticket', 'contact faculty', 'help', 'report issue', 'bug'],
+      icon: Ticket,
+      badge: 'Action',
+      badgeColor: 'bg-[#121614] text-white border-transparent',
+      recommended: true,
+      allowedRoles: ['learner'],
+    },
+    {
+      id: 'action_take_quiz',
+      title: 'Start Module Quiz / Test',
+      description: 'Launch immediate knowledge check questions and check scores',
+      category: 'Actions',
+      href: '/assessments?tab=quizzes',
+      keywords: ['take quiz', 'start test', 'test', 'exam', 'quiz'],
+      icon: Award,
+      badge: 'Action',
+      badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
+      recommended: false,
+      allowedRoles: ['learner'],
+    },
     {
       id: 'assess_mod1',
       title: 'Module 1: AI Foundations',
@@ -236,6 +179,7 @@ export const GlobalSearchBar: React.FC = () => {
       badge: 'Module 1',
       badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       recommended: true,
+      allowedRoles: ['learner'],
     },
     {
       id: 'assess_sub1_1',
@@ -248,6 +192,7 @@ export const GlobalSearchBar: React.FC = () => {
       badge: 'Deliverable',
       badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
       recommended: false,
+      allowedRoles: ['learner'],
     },
     {
       id: 'assess_sub1_2',
@@ -260,6 +205,7 @@ export const GlobalSearchBar: React.FC = () => {
       badge: 'Deliverable',
       badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
       recommended: false,
+      allowedRoles: ['learner'],
     },
     {
       id: 'assess_quiz_mod1',
@@ -272,37 +218,245 @@ export const GlobalSearchBar: React.FC = () => {
       badge: 'Timed Quiz',
       badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
       recommended: false,
+      allowedRoles: ['learner'],
     },
 
-    // --- Quick Actions & Tools ---
+    // ==========================================
+    // 2. ADMIN-EXCLUSIVE PAGES & ACTIONS (Secured)
+    // ==========================================
     {
-      id: 'action_new_ticket',
-      title: 'Raise New Support Ticket',
-      description: 'Submit an academic, technical, or portal inquiry directly to faculty',
-      category: 'Actions',
-      href: '/support?action=new',
-      keywords: ['new ticket', 'create ticket', 'raise ticket', 'contact faculty', 'help', 'report issue', 'bug'],
-      icon: Ticket,
-      badge: 'Action',
-      badgeColor: 'bg-[#121614] text-white border-transparent',
+      id: 'page_admin_dashboard',
+      title: 'Faculty & Admin Dashboard',
+      description: 'Institution analytics, lecture management, faculty tasks & broadcast center',
+      category: 'Pages',
+      href: '/',
+      keywords: ['dashboard', 'admin', 'faculty', 'overview', 'governance', 'institution', 'management'],
+      icon: LayoutDashboard,
+      badge: 'Admin Console',
+      badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
       recommended: true,
+      allowedRoles: ['admin'],
     },
     {
-      id: 'action_switch_role',
-      title: `Switch Role (Current: ${user?.role === 'admin' ? 'Faculty Admin' : 'Learner'})`,
-      description: 'Toggle views between Learner (Alex Morgan) and Faculty Admin perspective',
+      id: 'page_attendance_admin',
+      title: 'Session Attendance & Cohort Rosters',
+      description: 'Administrative attendance console: mark rosters, view presence rates & schedule lectures',
+      category: 'Pages',
+      href: '/attendance',
+      keywords: ['attendance', 'roster', 'students', 'mark attendance', 'cohort', 'present', 'absent', 'late', 'sessions'],
+      icon: UserCheck,
+      badge: 'Admin Console',
+      badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      recommended: true,
+      allowedRoles: ['admin'],
+    },
+    {
+      id: 'page_enrollment_admin',
+      title: 'Student Enrollment & Cohort Directory',
+      description: 'Admissions management, active student directory, CSV roster import & exports',
+      category: 'Pages',
+      href: '/enrollment',
+      keywords: ['enrollment', 'students', 'admissions', 'csv', 'import', 'roster', 'cohort directory', 'users'],
+      icon: Users,
+      badge: 'Admin Roster',
+      badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
+      recommended: true,
+      allowedRoles: ['admin'],
+    },
+    {
+      id: 'page_assessments_admin',
+      title: 'Assessment & Project Review Desk',
+      description: 'Evaluate student project deliverables, assign grades, audit quiz statistics',
+      category: 'Pages',
+      href: '/assessments',
+      keywords: ['assessments', 'grading', 'review', 'submissions', 'faculty audit', 'rubric', 'evaluation', 'review desk'],
+      icon: FileCheck,
+      badge: 'Admin Review',
+      badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
+      recommended: true,
+      allowedRoles: ['admin'],
+    },
+    {
+      id: 'page_support_admin',
+      title: 'Faculty Support Resolution Center',
+      description: 'Manage open student tickets across cohorts, submit remarks & resolve issues',
+      category: 'Pages',
+      href: '/support',
+      keywords: ['support', 'tickets', 'resolution', 'helpdesk', 'under review', 'faculty remarks', 'closed', 'console'],
+      icon: Ticket,
+      badge: 'Resolution Desk',
+      badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+      recommended: true,
+      allowedRoles: ['admin'],
+    },
+    {
+      id: 'action_schedule_lecture',
+      title: 'Schedule New Lecture Session',
+      description: 'Schedule live lecture with Google Meet link, set cohort duration & publish',
       category: 'Actions',
-      action: () => switchRole(user?.role === 'admin' ? 'learner' : 'admin'),
-      keywords: ['switch role', 'admin', 'learner', 'faculty', 'toggle role', 'role', 'alex morgan'],
+      href: '/attendance?action=schedule',
+      keywords: ['schedule lecture', 'new session', 'google meet', 'create class', 'live lecture', 'calendar'],
+      icon: Video,
+      badge: 'Admin Action',
+      badgeColor: 'bg-[#121614] text-white border-transparent',
+      recommended: true,
+      allowedRoles: ['admin'],
+    },
+    {
+      id: 'action_import_csv',
+      title: 'Bulk Import Students via CSV',
+      description: 'Upload learner roster CSV file to automatically register cohort students',
+      category: 'Actions',
+      href: '/enrollment?action=import',
+      keywords: ['import students', 'csv upload', 'bulk admission', 'roster upload', 'enrollment'],
+      icon: UserPlus,
+      badge: 'Admin Action',
+      badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
+      recommended: true,
+      allowedRoles: ['admin'],
+    },
+    {
+      id: 'action_upload_quiz_bank',
+      title: 'Upload CSV Quiz Question Bank',
+      description: 'Upload structured questions and publish automated milestone tests',
+      category: 'Actions',
+      href: '/assessments?tab=quizzes',
+      keywords: ['quiz upload', 'csv questions', 'question bank', 'new quiz', 'create test'],
+      icon: Award,
+      badge: 'Admin Action',
+      badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
+      recommended: false,
+      allowedRoles: ['admin'],
+    },
+    {
+      id: 'action_compose_broadcast',
+      title: 'Compose System Announcement',
+      description: 'Publish high-priority broadcast notification to all students or specific courses',
+      category: 'Actions',
+      href: '/',
+      keywords: ['broadcast', 'announcement', 'bulletin', 'notify students', 'alert', 'message'],
+      icon: BellRing,
+      badge: 'Admin Action',
+      badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
+      recommended: true,
+      allowedRoles: ['admin'],
+    },
+    {
+      id: 'action_switch_to_learner',
+      title: 'Switch to Learner View (Alex Morgan)',
+      description: 'Simulate learner perspective to verify student experience and submissions',
+      category: 'Actions',
+      action: () => switchRole('learner'),
+      keywords: ['switch role', 'learner view', 'alex morgan', 'preview student', 'simulate learner'],
       icon: RefreshCw,
-      badge: 'Toggle',
+      badge: 'Role Toggle',
       badgeColor: 'bg-purple-100 text-purple-800 border-purple-200',
       recommended: true,
+      allowedRoles: ['admin'],
+    },
+
+    // ==========================================
+    // 3. SHARED ACADEMIC RESOURCES (Learner & Admin)
+    // ==========================================
+    {
+      id: 'page_courses',
+      title: 'Courses & Curriculum',
+      description: currentRole === 'admin' 
+        ? 'Curriculum module oversight, course syllabi and enrolled cohorts'
+        : 'Your enrolled courses, active modules, syllabus and study materials',
+      category: 'Pages',
+      href: '/courses',
+      keywords: ['courses', 'curriculum', 'classes', 'syllabus', 'modules', 'study', 'lessons'],
+      icon: BookOpen,
+      badge: 'Academic',
+      badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
+      recommended: true,
+      allowedRoles: ['learner', 'admin'],
+    },
+    {
+      id: 'page_performance',
+      title: 'Performance & Progress Analytics',
+      description: currentRole === 'admin'
+        ? 'Institutional cohort completion averages, study velocity & grade audits'
+        : 'Your GPA metrics, weekly study activity, and course completion rates',
+      category: 'Pages',
+      href: '/performance',
+      keywords: ['performance', 'gpa', 'grades', 'progress', 'analytics', 'completion', 'activity', 'hours'],
+      icon: BarChart2,
+      badge: 'Analytics',
+      badgeColor: 'bg-teal-50 text-teal-700 border-teal-200',
+      recommended: true,
+      allowedRoles: ['learner', 'admin'],
+    },
+    {
+      id: 'page_events',
+      title: 'Events & Live Seminars',
+      description: 'Calendar of live lectures, faculty office hours, and guest webinars',
+      category: 'Pages',
+      href: '/events',
+      keywords: ['events', 'seminars', 'calendar', 'schedule', 'webinars', 'live', 'office hours', 'classes'],
+      icon: Calendar,
+      badge: 'Live',
+      badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+      recommended: true,
+      allowedRoles: ['learner', 'admin'],
+    },
+    {
+      id: 'course_1',
+      title: 'Academic Information & Governance (ACA-101)',
+      description: 'Dean Dr. Evelyn Reed • Institutional policies, roadmaps, ethics',
+      category: 'Courses',
+      href: '/courses/course_1',
+      keywords: ['academic', 'governance', 'evelyn', 'reed', 'aca-101', 'ethics', 'policies', 'course 1'],
+      icon: BookOpen,
+      badge: 'Course',
+      badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
+      recommended: true,
+      allowedRoles: ['learner', 'admin'],
+    },
+    {
+      id: 'course_2',
+      title: 'Business Research Methodologies (BRM-204)',
+      description: 'Dr. Sarah Jenkins • Qualitative & quantitative hypothesis testing',
+      category: 'Courses',
+      href: '/courses/course_2',
+      keywords: ['business', 'research', 'methodologies', 'jenkins', 'brm-204', 'hypothesis', 'testing', 'course 2'],
+      icon: BookOpen,
+      badge: 'Course',
+      badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
+      recommended: false,
+      allowedRoles: ['learner', 'admin'],
+    },
+    {
+      id: 'course_3',
+      title: 'Applied AI Systems & Architecture (AI-301)',
+      description: 'Admin Faculty • LLM pipelines, autonomous agents, neural optimization',
+      category: 'Courses',
+      href: '/courses/course_3',
+      keywords: ['applied ai', 'systems', 'neural', 'optimization', 'transformers', 'agents', 'ai-301', 'course 3'],
+      icon: Sparkles,
+      badge: 'Course',
+      badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
+      recommended: true,
+      allowedRoles: ['learner', 'admin'],
+    },
+    {
+      id: 'course_lecture_transformers',
+      title: 'Deep Neural Optimization & Transformers',
+      description: 'Session 4 • Gradient accumulation, batch sizing, attention masking',
+      category: 'Courses',
+      href: '/courses',
+      keywords: ['neural', 'optimization', 'transformers', 'session 4', 'deep neural', 'gradient', 'attention'],
+      icon: Sparkles,
+      badge: 'Lecture',
+      badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      recommended: false,
+      allowedRoles: ['learner', 'admin'],
     },
     {
       id: 'action_join_live',
-      title: 'Join Upcoming Live Session',
-      description: 'Open schedule and join active Google Meet classroom sessions',
+      title: 'Join Scheduled Live Class',
+      description: 'Open schedule and join active Google Meet classroom session',
       category: 'Actions',
       href: '/events',
       keywords: ['join live', 'live class', 'meet', 'gmeet', 'webinar', 'stream', 'call'],
@@ -310,37 +464,31 @@ export const GlobalSearchBar: React.FC = () => {
       badge: 'Action',
       badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       recommended: false,
+      allowedRoles: ['learner', 'admin'],
     },
-    {
-      id: 'action_take_quiz',
-      title: 'Start Module Quiz / Test',
-      description: 'Launch immediate knowledge check questions and check scores',
-      category: 'Actions',
-      href: '/assessments?tab=quizzes',
-      keywords: ['take quiz', 'start test', 'test', 'exam'],
-      icon: Award,
-      badge: 'Action',
-      badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
-      recommended: false,
-    },
-  ], [user?.role, switchRole]);
+  ], [currentRole, switchRole]);
 
-  // Filtered Results or Recommendations
+  // STRICT Role-Based Filter: Only items permitted for the current user's role can ever be returned
+  const roleAuthorizedItems = useMemo(() => {
+    return allSearchItems.filter((item) => item.allowedRoles.includes(currentRole));
+  }, [allSearchItems, currentRole]);
+
+  // Search Results & Recommendations Filtered Strictly by User Role
   const displayedItems = useMemo(() => {
     const cleanQuery = query.trim().toLowerCase();
     if (!cleanQuery) {
-      // Recommendations when query is empty: return items marked as recommended
-      return searchItems.filter((item) => item.recommended);
+      // Recommendations when query is empty: only role-authorized items marked recommended
+      return roleAuthorizedItems.filter((item) => item.recommended);
     }
 
-    return searchItems.filter((item) => {
+    return roleAuthorizedItems.filter((item) => {
       const matchTitle = item.title.toLowerCase().includes(cleanQuery);
       const matchDesc = item.description.toLowerCase().includes(cleanQuery);
       const matchCategory = item.category.toLowerCase().includes(cleanQuery);
       const matchKeywords = item.keywords.some((kw) => kw.toLowerCase().includes(cleanQuery));
       return matchTitle || matchDesc || matchCategory || matchKeywords;
     });
-  }, [query, searchItems]);
+  }, [query, roleAuthorizedItems]);
 
   // Keep selected index within valid range
   useEffect(() => {
@@ -350,7 +498,6 @@ export const GlobalSearchBar: React.FC = () => {
   // Global Keyboard Shortcuts (⌘K / Ctrl+K and Esc)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // ⌘K or Ctrl+K to open search
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         inputRef.current?.focus();
@@ -374,8 +521,14 @@ export const GlobalSearchBar: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Execution / Routing Handler
+  // Execution / Routing Handler with Strict Permission Guard
   const handleSelect = (item: SearchItem) => {
+    // Security check: ensure item is strictly permitted for current user role
+    if (!item.allowedRoles.includes(currentRole)) {
+      console.warn(`[Security Guard] Access denied to restricted item: ${item.id} for role: ${currentRole}`);
+      return;
+    }
+
     setIsOpen(false);
     setQuery('');
 
@@ -400,10 +553,10 @@ export const GlobalSearchBar: React.FC = () => {
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setSelectedIndex((prev) => (prev + 1) % displayedItems.length);
+      setSelectedIndex((prev) => (prev + 1) % (displayedItems.length || 1));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setSelectedIndex((prev) => (prev - 1 + displayedItems.length) % displayedItems.length);
+      setSelectedIndex((prev) => (prev - 1 + (displayedItems.length || 1)) % (displayedItems.length || 1));
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (displayedItems.length > 0) {
@@ -425,7 +578,11 @@ export const GlobalSearchBar: React.FC = () => {
         <input
           ref={inputRef}
           type="text"
-          placeholder="Search pages, courses, actions... (⌘K)"
+          placeholder={
+            currentRole === 'admin'
+              ? 'Search admin portal, rosters, tools... (⌘K)'
+              : 'Search pages, courses, actions... (⌘K)'
+          }
           value={query}
           onFocus={() => setIsOpen(true)}
           onChange={(e) => {
@@ -468,7 +625,9 @@ export const GlobalSearchBar: React.FC = () => {
               {!query.trim() ? (
                 <>
                   <Compass className="w-3.5 h-3.5 text-[#059669]" />
-                  <span className="text-gray-700 font-semibold">Recommended & Quick Navigation</span>
+                  <span className="text-gray-700 font-semibold">
+                    {currentRole === 'admin' ? 'Faculty Tools & Management' : 'Recommended & Quick Navigation'}
+                  </span>
                 </>
               ) : (
                 <>
@@ -479,7 +638,10 @@ export const GlobalSearchBar: React.FC = () => {
                 </>
               )}
             </div>
-            <span className="text-[11px] text-gray-400">Jump anywhere</span>
+            <div className="flex items-center gap-1 text-[11px] font-mono text-gray-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+              <span>{currentRole === 'admin' ? 'Faculty Admin' : 'Student'}</span>
+            </div>
           </div>
 
           {/* Items List */}
@@ -551,10 +713,12 @@ export const GlobalSearchBar: React.FC = () => {
               <div className="py-8 px-4 text-center">
                 <Search className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                 <p className="text-sm font-medium text-gray-800">
-                  No matching destinations for &ldquo;{query}&rdquo;
+                  No matching results for &ldquo;{query}&rdquo;
                 </p>
                 <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto">
-                  Try searching for <span className="font-semibold text-gray-600">courses</span>, <span className="font-semibold text-gray-600">assessments</span>, <span className="font-semibold text-gray-600">support</span>, or <span className="font-semibold text-gray-600">attendance</span>.
+                  {currentRole === 'admin'
+                    ? 'Try searching for rosters, enrollment, grading, or broadcasts.'
+                    : 'Try searching for courses, assignments, quizzes, or support.'}
                 </p>
               </div>
             )}
@@ -577,7 +741,7 @@ export const GlobalSearchBar: React.FC = () => {
                 <span>Close</span>
               </span>
             </div>
-            <span className="font-medium text-gray-400 hidden sm:inline">AIvalytics Navigation</span>
+            <span className="font-medium text-gray-400 hidden sm:inline">AIvalytics Access Control</span>
           </div>
         </div>
       )}

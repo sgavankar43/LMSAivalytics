@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
 import { useAuth } from '@/context/AuthContext';
 import { useAttendance } from '@/context/AttendanceContext';
@@ -42,6 +43,14 @@ export default function AttendancePage() {
   } = useAttendance();
 
   const isAdmin = role === 'admin' || user?.role === 'admin';
+  const router = useRouter();
+
+  // Guard: Redirect non-admins to Dashboard
+  useEffect(() => {
+    if (user && !isAdmin) {
+      router.replace('/');
+    }
+  }, [user, isAdmin, router]);
 
   // Navigation sub-tab: 'sessions' | 'students'
   const [activeTab, setActiveTab] = useState<'sessions' | 'students'>('sessions');
@@ -143,6 +152,10 @@ export default function AttendancePage() {
   const totalSessionsCount = sessions.length;
   const totalEnrolledCount = enrolledCohortStudents.length;
   const markedSessionsCount = Object.values(attendances).length;
+
+  if (!isAdmin) {
+    return null;
+  }
 
   return (
     <AppShell>

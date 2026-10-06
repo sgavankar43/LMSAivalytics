@@ -353,11 +353,13 @@ export default function AssessmentsPage() {
         />
 
         {/* Modal: CSV Quiz Creator for Admins */}
-        <CsvQuizUploadModal
-          isOpen={isCsvQuizModalOpen}
-          onClose={() => setIsCsvQuizModalOpen(false)}
-          onSuccess={() => showToast('New quiz created and published to students!')}
-        />
+        {isAdmin && (
+          <CsvQuizUploadModal
+            isOpen={isCsvQuizModalOpen}
+            onClose={() => setIsCsvQuizModalOpen(false)}
+            onSuccess={() => showToast('New quiz created and published to students!')}
+          />
+        )}
       </div>
     </AppShell>
   );
