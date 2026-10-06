@@ -4,14 +4,13 @@ import React, { useState } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { MetricCard } from '@/components/dashboard/MetricCard';
 import { CircularProgressCard } from '@/components/dashboard/CircularProgressCard';
-import { MonthlyBarChart } from '@/components/dashboard/MonthlyBarChart';
+import { StudentAttendanceStackCard } from '@/components/dashboard/StudentAttendanceStackCard';
 import { MiniStatCard } from '@/components/dashboard/MiniStatCard';
 import { WeeklyActivityChart } from '@/components/dashboard/WeeklyActivityChart';
 import { RecentSessionsTable } from '@/components/dashboard/RecentSessionsTable';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
 import {
   mockMetricCards,
-  mockMonthlyAttendance,
   mockWeeklyActivity,
   mockRecentSessions,
 } from '@/data/mockData';
@@ -228,11 +227,14 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* 3. Monthly Attendance Chart & Mini Stat Cards */}
+          {/* 3. Stack-based Attendance & Reflection System */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 items-stretch">
-            {/* Monthly Bar Chart (Span 2 cols on lg) */}
+            {/* Student Lecture Attendance & Reflection Stack Card (Span 2 cols on lg) */}
             <div className="lg:col-span-2">
-              <MonthlyBarChart data={mockMonthlyAttendance} year="2026" />
+              <StudentAttendanceStackCard
+                sessions={sessions}
+                studentEmail={studentEmail}
+              />
             </div>
 
             {/* Mini Stat Cards Column (Span 1 col on lg) */}
