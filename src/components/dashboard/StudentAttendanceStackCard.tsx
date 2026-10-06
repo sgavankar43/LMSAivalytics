@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { SessionItem, AttendanceStatus } from '@/types';
 import { useAttendance } from '@/context/AttendanceContext';
@@ -36,6 +37,186 @@ interface StudentReflection {
   savedAt: string;
 }
 
+interface LectureReflectionModalProps {
+  session: SessionItem;
+  initialReflection?: StudentReflection;
+  attendanceInfo: { label: string; badgeBg: string };
+  onSave: (data: {
+    takeaway: string;
+    comprehension: 'Mastered' | 'Understood' | 'Needs Review';
+    keyQuestion?: string;
+  }) => void;
+  onClose: () => void;
+}
+
+const LectureReflectionModal: React.FC<LectureReflectionModalProps> = ({
+  session,
+  initialReflection,
+  attendanceInfo,
+  onSave,
+  onClose,
+}) => {
+  const [reflectionInput, setReflectionInput] = useState(
+    initialReflection?.takeaway || ''
+  );
+  const [comprehensionInput, setComprehensionInput] = useState<
+    'Mastered' | 'Understood' | 'Needs Review'
+  >(initialReflection?.comprehension || 'Understood');
+  const [questionInput, setQuestionInput] = useState(
+    initialReflection?.keyQuestion || ''
+  );
+
+  // Close on Escape & lock body scrolling
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [onClose]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({
+      takeaway: reflectionInput.trim() || 'Attended lecture and reviewed lecture materials.',
+      comprehension: comprehensionInput,
+      keyQuestion: questionInput.trim() || undefined,
+    });
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] border border-gray-100 space-y-5 relative my-auto animate-in zoom-in-95 duration-150"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Modal Header */}
+        <div className="flex items-start justify-between pb-3 border-b border-gray-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-[#e8f8f0] flex items-center justify-center border border-[#d1f4e2]">
+              <Sparkles className="w-4 h-4 text-[#059669]" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-gray-900">Lecture Reflection & Notes</h3>
+              <p className="text-xs text-gray-400">Reflect on key learning takeaways and attendance</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 p-1 rounded-lg transition-colors cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Session Summary Box */}
+        <div className="bg-[#f8faf9] p-4 rounded-2xl border border-gray-100 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-[#059669] bg-[#e8f8f0] px-2.5 py-0.5 rounded-full">
+              {session.course}
+            </span>
+            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md ${attendanceInfo.badgeBg}`}>
+              {attendanceInfo.label}
+            </span>
+          </div>
+          <h4 className="text-sm font-bold text-gray-900">{session.title}</h4>
+          <div className="flex items-center gap-3 text-[11px] text-gray-500 font-mono">
+            <span>{session.date} • {session.time}</span>
+            <span>• {session.instructor || 'Faculty Member'}</span>
+          </div>
+        </div>
+
+        {/* Reflection Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Comprehension Rating */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+              Comprehension & Understanding Level
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {(['Mastered', 'Understood', 'Needs Review'] as const).map((level) => (
+                <button
+                  key={level}
+                  type="button"
+                  onClick={() => setComprehensionInput(level)}
+                  className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer ${
+                    comprehensionInput === level
+                      ? level === 'Mastered'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                        : level === 'Understood'
+                        ? 'bg-[#121614] text-white border-[#121614] shadow-xs'
+                        : 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  {level}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Learning Takeaway */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">
+              Key Concept Takeaway & Summary
+            </label>
+            <textarea
+              rows={3}
+              required
+              placeholder="What was the core principle covered in this lecture? e.g. Gradient accumulation enables training large batch sizes on memory-constrained GPUs..."
+              value={reflectionInput}
+              onChange={(e) => setReflectionInput(e.target.value)}
+              className="w-full text-xs sm:text-sm p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#3ECE92] leading-relaxed resize-none"
+            />
+          </div>
+
+          {/* Follow-up Questions / Office Hours */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">
+              Follow-up Question for Faculty Office Hours (Optional)
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. Can we review the attention masking formula in office hours?"
+              value={questionInput}
+              onChange={(e) => setQuestionInput(e.target.value)}
+              className="w-full text-xs p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#3ECE92]"
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2.5 pt-2">
+            <button
+              type="submit"
+              className="flex-1 bg-[#121614] hover:bg-black text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
+            >
+              <Check className="w-3.5 h-3.5 text-[#3ECE92]" />
+              <span>Save Reflection</span>
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-medium rounded-xl cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const STORAGE_KEY = 'aivalytics_student_reflections_v1';
 
 export const StudentAttendanceStackCard: React.FC<StudentAttendanceStackCardProps> = ({
@@ -43,7 +224,16 @@ export const StudentAttendanceStackCard: React.FC<StudentAttendanceStackCardProp
   studentEmail,
 }) => {
   const { getSessionAttendance, getStudentAttendance } = useAttendance();
-  const studentStats = getStudentAttendance(studentEmail);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const studentStats = useMemo(
+    () => getStudentAttendance(studentEmail),
+    [getStudentAttendance, studentEmail]
+  );
 
   // Filter state: 'All' | 'Present' | 'Absent' | 'Live'
   const [filter, setFilter] = useState<'All' | 'Present' | 'Absent' | 'Live'>('All');
@@ -70,9 +260,6 @@ export const StudentAttendanceStackCard: React.FC<StudentAttendanceStackCardProp
     };
   });
 
-  const [reflectionInput, setReflectionInput] = useState('');
-  const [comprehensionInput, setComprehensionInput] = useState<'Mastered' | 'Understood' | 'Needs Review'>('Understood');
-  const [questionInput, setQuestionInput] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Save reflections to localStorage
@@ -92,121 +279,117 @@ export const StudentAttendanceStackCard: React.FC<StudentAttendanceStackCardProp
   };
 
   // Helper to determine attendance status for this specific student
-  const getAttendanceInfo = (session: SessionItem) => {
-    const isLive = session.status === 'In Progress';
-    const isUpcoming = session.status === 'Upcoming';
+  const getAttendanceInfo = useCallback(
+    (session: SessionItem) => {
+      const isLive = session.status === 'In Progress';
+      const isUpcoming = session.status === 'Upcoming';
 
-    if (isLive) {
-      return {
-        status: 'LIVE',
-        label: '🔴 Live Now',
-        sublabel: 'In Session',
-        badgeBg: 'bg-[#5ae4a8] text-[#111614]',
-        isLive: true,
-      };
-    }
-
-    if (isUpcoming) {
-      return {
-        status: 'UPCOMING',
-        label: 'Upcoming',
-        sublabel: 'Scheduled',
-        badgeBg: 'bg-blue-50 text-blue-700 border border-blue-200',
-        isUpcoming: true,
-      };
-    }
-
-    // Check attendance record from session attendance map
-    const sessionAtt = getSessionAttendance(session.id);
-    const emailNorm = studentEmail.toLowerCase();
-    const record = sessionAtt?.records?.[emailNorm];
-
-    if (record) {
-      if (record.status === 'PRESENT') {
+      if (isLive) {
         return {
-          status: 'PRESENT',
-          label: '✓ Present',
-          sublabel: 'Attended (100%)',
-          badgeBg: 'bg-emerald-50 text-emerald-800 border border-emerald-200/90',
+          status: 'LIVE',
+          label: '🔴 Live Now',
+          sublabel: 'In Session',
+          badgeBg: 'bg-[#5ae4a8] text-[#111614]',
+          isLive: true,
         };
       }
-      if (record.status === 'LATE') {
-        return {
-          status: 'LATE',
-          label: '⏱ Late',
-          sublabel: 'Partial Attendance',
-          badgeBg: 'bg-amber-50 text-amber-800 border border-amber-200/90',
-        };
-      }
-      return {
-        status: 'ABSENT',
-        label: '✕ Absent',
-        sublabel: 'Missed Lecture',
-        badgeBg: 'bg-red-50 text-red-700 border border-red-200/90',
-      };
-    }
 
-    // Fallback: check sessionDetails in studentStats
-    const detail = studentStats.sessionDetails.find((d) => d.sessionId === session.id);
-    if (detail) {
-      if (detail.status === 'PRESENT') {
+      if (isUpcoming) {
         return {
-          status: 'PRESENT',
-          label: '✓ Present',
-          sublabel: 'Attended (100%)',
-          badgeBg: 'bg-emerald-50 text-emerald-800 border border-emerald-200/90',
+          status: 'UPCOMING',
+          label: 'Upcoming',
+          sublabel: 'Scheduled',
+          badgeBg: 'bg-blue-50 text-blue-700 border border-blue-200',
+          isUpcoming: true,
         };
       }
-      if (detail.status === 'LATE') {
-        return {
-          status: 'LATE',
-          label: '⏱ Late',
-          sublabel: 'Partial Attendance',
-          badgeBg: 'bg-amber-50 text-amber-800 border border-amber-200/90',
-        };
-      }
-      return {
-        status: 'ABSENT',
-        label: '✕ Absent',
-        sublabel: 'Missed Lecture',
-        badgeBg: 'bg-red-50 text-red-700 border border-red-200/90',
-      };
-    }
 
-    // Default for closed historical lectures: marked Present
-    return {
-      status: 'PRESENT',
-      label: '✓ Present',
-      sublabel: 'Attended (100%)',
-      badgeBg: 'bg-emerald-50 text-emerald-800 border border-emerald-200/90',
-    };
-  };
+      // Check attendance record from session attendance map
+      const sessionAtt = getSessionAttendance(session.id);
+      const emailNorm = studentEmail.toLowerCase();
+      const record = sessionAtt?.records?.[emailNorm];
+
+      if (record) {
+        if (record.status === 'PRESENT') {
+          return {
+            status: 'PRESENT',
+            label: '✓ Present',
+            sublabel: 'Attended (100%)',
+            badgeBg: 'bg-emerald-50 text-emerald-800 border border-emerald-200/90',
+          };
+        }
+        if (record.status === 'LATE') {
+          return {
+            status: 'LATE',
+            label: '⏱ Late',
+            sublabel: 'Partial Attendance',
+            badgeBg: 'bg-amber-50 text-amber-800 border border-amber-200/90',
+          };
+        }
+        return {
+          status: 'ABSENT',
+          label: '✕ Absent',
+          sublabel: 'Missed Lecture',
+          badgeBg: 'bg-red-50 text-red-700 border border-red-200/90',
+        };
+      }
+
+      // Fallback: check sessionDetails in studentStats
+      const detail = studentStats.sessionDetails.find((d) => d.sessionId === session.id);
+      if (detail) {
+        if (detail.status === 'PRESENT') {
+          return {
+            status: 'PRESENT',
+            label: '✓ Present',
+            sublabel: 'Attended (100%)',
+            badgeBg: 'bg-emerald-50 text-emerald-800 border border-emerald-200/90',
+          };
+        }
+        if (detail.status === 'LATE') {
+          return {
+            status: 'LATE',
+            label: '⏱ Late',
+            sublabel: 'Partial Attendance',
+            badgeBg: 'bg-amber-50 text-amber-800 border border-amber-200/90',
+          };
+        }
+        return {
+          status: 'ABSENT',
+          label: '✕ Absent',
+          sublabel: 'Missed Lecture',
+          badgeBg: 'bg-red-50 text-red-700 border border-red-200/90',
+        };
+      }
+
+      // Default for closed historical lectures: marked Present
+      return {
+        status: 'PRESENT',
+        label: '✓ Present',
+        sublabel: 'Attended (100%)',
+        badgeBg: 'bg-emerald-50 text-emerald-800 border border-emerald-200/90',
+      };
+    },
+    [getSessionAttendance, studentEmail, studentStats]
+  );
 
   // Open reflection modal
   const handleOpenReflection = (session: SessionItem) => {
     setSelectedSessionForReflection(session);
-    const existing = reflections[session.id];
-    if (existing) {
-      setReflectionInput(existing.takeaway);
-      setComprehensionInput(existing.comprehension);
-      setQuestionInput(existing.keyQuestion || '');
-    } else {
-      setReflectionInput('');
-      setComprehensionInput('Understood');
-      setQuestionInput('');
-    }
   };
 
   // Save reflection
-  const handleSaveReflection = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveReflection = (data: {
+    takeaway: string;
+    comprehension: 'Mastered' | 'Understood' | 'Needs Review';
+    keyQuestion?: string;
+  }) => {
     if (!selectedSessionForReflection) return;
 
     const newReflection: StudentReflection = {
       sessionId: selectedSessionForReflection.id,
-      takeaway: reflectionInput.trim() || 'Attended lecture and reviewed lecture materials.',
-      comprehension: comprehensionInput,
-      keyQuestion: questionInput.trim() || undefined,
+      takeaway: data.takeaway,
+      comprehension: data.comprehension,
+      keyQuestion: data.keyQuestion,
       savedAt: 'Just now',
     };
 
@@ -220,13 +403,15 @@ export const StudentAttendanceStackCard: React.FC<StudentAttendanceStackCardProp
   };
 
   // Filter sessions
-  const filteredSessions = sessions.filter((session) => {
-    const info = getAttendanceInfo(session);
-    if (filter === 'Present') return info.status === 'PRESENT' || info.status === 'LATE';
-    if (filter === 'Absent') return info.status === 'ABSENT';
-    if (filter === 'Live') return info.status === 'LIVE' || info.status === 'UPCOMING';
-    return true;
-  });
+  const filteredSessions = useMemo(() => {
+    return sessions.filter((session) => {
+      const info = getAttendanceInfo(session);
+      if (filter === 'Present') return info.status === 'PRESENT' || info.status === 'LATE';
+      if (filter === 'Absent') return info.status === 'ABSENT';
+      if (filter === 'Live') return info.status === 'LIVE' || info.status === 'UPCOMING';
+      return true;
+    });
+  }, [sessions, filter, getAttendanceInfo]);
 
   return (
     <div className="bg-white rounded-2xl border border-[#eaedf0] shadow-[0_2px_10px_rgba(0,0,0,0.02)] p-4 sm:p-4.5 card-hover flex flex-col justify-between relative">
@@ -425,125 +610,19 @@ export const StudentAttendanceStackCard: React.FC<StudentAttendanceStackCardProp
         </Link>
       </div>
 
-      {/* Student Lecture Attendance & Reflection Modal */}
-      {selectedSessionForReflection && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95 duration-150 space-y-5">
-            {/* Modal Header */}
-            <div className="flex items-start justify-between pb-3 border-b border-gray-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-[#e8f8f0] flex items-center justify-center border border-[#d1f4e2]">
-                  <Sparkles className="w-4 h-4 text-[#059669]" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-gray-900">Lecture Reflection & Notes</h3>
-                  <p className="text-xs text-gray-400">Reflect on key learning takeaways and attendance</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedSessionForReflection(null)}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Session Summary Box */}
-            <div className="bg-[#f8faf9] p-4 rounded-2xl border border-gray-100 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-[#059669] bg-[#e8f8f0] px-2.5 py-0.5 rounded-full">
-                  {selectedSessionForReflection.course}
-                </span>
-                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md ${getAttendanceInfo(selectedSessionForReflection).badgeBg}`}>
-                  {getAttendanceInfo(selectedSessionForReflection).label}
-                </span>
-              </div>
-              <h4 className="text-sm font-bold text-gray-900">{selectedSessionForReflection.title}</h4>
-              <div className="flex items-center gap-3 text-[11px] text-gray-500 font-mono">
-                <span>{selectedSessionForReflection.date} • {selectedSessionForReflection.time}</span>
-                <span>• {selectedSessionForReflection.instructor || 'Faculty Member'}</span>
-              </div>
-            </div>
-
-            {/* Reflection Form */}
-            <form onSubmit={handleSaveReflection} className="space-y-4">
-              {/* Comprehension Rating */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Comprehension & Understanding Level
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['Mastered', 'Understood', 'Needs Review'] as const).map((level) => (
-                    <button
-                      key={level}
-                      type="button"
-                      onClick={() => setComprehensionInput(level)}
-                      className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer ${
-                        comprehensionInput === level
-                          ? level === 'Mastered'
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                            : level === 'Understood'
-                            ? 'bg-[#121614] text-white border-[#121614] shadow-xs'
-                            : 'bg-amber-600 text-white border-amber-600 shadow-xs'
-                          : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-                      }`}
-                    >
-                      {level}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Learning Takeaway */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Key Concept Takeaway & Summary
-                </label>
-                <textarea
-                  rows={3}
-                  required
-                  placeholder="What was the core principle covered in this lecture? e.g. Gradient accumulation enables training large batch sizes on memory-constrained GPUs..."
-                  value={reflectionInput}
-                  onChange={(e) => setReflectionInput(e.target.value)}
-                  className="w-full text-xs sm:text-sm p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#3ECE92] leading-relaxed resize-none"
-                />
-              </div>
-
-              {/* Follow-up Questions / Office Hours */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Follow-up Question for Faculty Office Hours (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Can we review the attention masking formula in office hours?"
-                  value={questionInput}
-                  onChange={(e) => setQuestionInput(e.target.value)}
-                  className="w-full text-xs p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#3ECE92]"
-                />
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-2.5 pt-2">
-                <button
-                  type="submit"
-                  className="flex-1 bg-[#121614] hover:bg-black text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
-                >
-                  <Check className="w-3.5 h-3.5 text-[#3ECE92]" />
-                  <span>Save Reflection</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedSessionForReflection(null)}
-                  className="px-4 py-2.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-medium rounded-xl cursor-pointer"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Student Lecture Attendance & Reflection Modal Portalled to document.body */}
+      {mounted &&
+        selectedSessionForReflection &&
+        createPortal(
+          <LectureReflectionModal
+            session={selectedSessionForReflection}
+            initialReflection={reflections[selectedSessionForReflection.id]}
+            attendanceInfo={getAttendanceInfo(selectedSessionForReflection)}
+            onSave={handleSaveReflection}
+            onClose={() => setSelectedSessionForReflection(null)}
+          />,
+          document.body
+        )}
     </div>
   );
 };
