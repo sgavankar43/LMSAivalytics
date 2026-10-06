@@ -1,11 +1,12 @@
 import React from 'react';
-import { Award, Ticket } from 'lucide-react';
+import { Award, Ticket, BookOpen, Video, UserCheck } from 'lucide-react';
 
 interface MiniStatCardProps {
   title: string;
   subtitle: string;
   percentage: number;
-  icon: 'award' | 'ticket';
+  icon: 'award' | 'ticket' | 'book' | 'video' | 'user-check';
+  gaugeColor?: string;
 }
 
 export const MiniStatCard: React.FC<MiniStatCardProps> = ({
@@ -13,30 +14,44 @@ export const MiniStatCard: React.FC<MiniStatCardProps> = ({
   subtitle,
   percentage,
   icon,
+  gaugeColor = '#3ECE92',
 }) => {
-  const size = 52;
-  const strokeWidth = 5;
+  const size = 50;
+  const strokeWidth = 4.5;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+  const strokeDashoffset = circumference - (Math.min(100, Math.max(0, percentage)) / 100) * circumference;
+
+  const renderIcon = () => {
+    switch (icon) {
+      case 'award':
+        return <Award className="w-4 h-4 text-[#059669]" />;
+      case 'ticket':
+        return <Ticket className="w-4 h-4 text-[#059669]" />;
+      case 'book':
+        return <BookOpen className="w-4 h-4 text-[#059669]" />;
+      case 'video':
+        return <Video className="w-4 h-4 text-[#059669]" />;
+      case 'user-check':
+        return <UserCheck className="w-4 h-4 text-[#059669]" />;
+      default:
+        return <Award className="w-4 h-4 text-[#059669]" />;
+    }
+  };
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-[#eaedf0] shadow-[0_2px_10px_rgba(0,0,0,0.02)] card-hover flex items-center justify-between">
-      <div className="flex items-center gap-4">
+    <div className="bg-white rounded-2xl p-4 sm:p-4.5 border border-[#eaedf0] shadow-[0_2px_10px_rgba(0,0,0,0.02)] card-hover flex items-center justify-between gap-3 transition-all hover:border-gray-300">
+      <div className="flex items-center gap-3.5 min-w-0">
         {/* Icon box */}
-        <div className="w-10 h-10 rounded-xl bg-[#e8f8f0] flex items-center justify-center border border-[#d1f4e2]/60 shrink-0">
-          {icon === 'award' ? (
-            <Award className="w-5 h-5 text-[#3ECE92]" />
-          ) : (
-            <Ticket className="w-5 h-5 text-[#3ECE92]" />
-          )}
+        <div className="w-9 h-9 rounded-xl bg-[#e8f8f0] flex items-center justify-center border border-[#d1f4e2]/60 shrink-0">
+          {renderIcon()}
         </div>
 
-        <div>
-          <h4 className="text-sm font-semibold text-gray-800">
+        <div className="min-w-0">
+          <h4 className="text-xs sm:text-sm font-bold text-gray-800 truncate">
             {title}
           </h4>
-          <p className="text-xs text-gray-400 mt-0.5 font-medium">
+          <p className="text-[11px] text-gray-400 mt-0.5 font-medium truncate">
             {subtitle}
           </p>
         </div>
@@ -58,7 +73,7 @@ export const MiniStatCard: React.FC<MiniStatCardProps> = ({
             cy={size / 2}
             r={radius}
             fill="transparent"
-            stroke="#3ECE92"
+            stroke={gaugeColor}
             strokeWidth={strokeWidth}
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
@@ -66,7 +81,7 @@ export const MiniStatCard: React.FC<MiniStatCardProps> = ({
             className="transition-all duration-800 ease-out"
           />
         </svg>
-        <span className="absolute text-[11px] font-bold text-gray-800">
+        <span className="absolute text-[11px] font-bold text-gray-800 font-mono">
           {percentage}%
         </span>
       </div>

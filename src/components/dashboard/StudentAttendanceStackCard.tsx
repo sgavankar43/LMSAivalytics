@@ -229,7 +229,7 @@ export const StudentAttendanceStackCard: React.FC<StudentAttendanceStackCardProp
   });
 
   return (
-    <div className="bg-white rounded-2xl border border-[#eaedf0] shadow-[0_2px_10px_rgba(0,0,0,0.02)] p-6 card-hover flex flex-col justify-between relative">
+    <div className="bg-white rounded-2xl border border-[#eaedf0] shadow-[0_2px_10px_rgba(0,0,0,0.02)] p-6 card-hover flex flex-col justify-between relative h-full">
       {/* Toast Feedback */}
       {toastMessage && (
         <div className="absolute top-4 right-4 z-30 bg-[#121614] text-white px-3.5 py-2 rounded-xl text-xs font-medium shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2">

@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { MetricCard } from '@/components/dashboard/MetricCard';
-import { CircularProgressCard } from '@/components/dashboard/CircularProgressCard';
 import { StudentAttendanceStackCard } from '@/components/dashboard/StudentAttendanceStackCard';
 import { MiniStatCard } from '@/components/dashboard/MiniStatCard';
 import { WeeklyActivityChart } from '@/components/dashboard/WeeklyActivityChart';
@@ -204,30 +203,7 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* 2. Circular Progress Row (Course completion & Live attendance) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-            <CircularProgressCard
-              title="Course completion"
-              percentage={24}
-              legend={[
-                { label: 'Completed', value: '24%', color: '#3ECE92' },
-                { label: 'Remaining', value: '76%', color: '#d1d5db' },
-              ]}
-              footerNote="Averaged across enrolled courses"
-            />
-
-            <CircularProgressCard
-              title="Live attendance"
-              percentage={studentAttendance.percentage}
-              legend={[
-                { label: 'Attended', value: `${studentAttendance.percentage}%`, color: '#3ECE92' },
-                { label: 'Missed', value: `${100 - studentAttendance.percentage}%`, color: '#d1d5db' },
-              ]}
-              footerNote={`${studentAttendance.attendedSessions} of ${studentAttendance.totalSessions} live sessions attended`}
-            />
-          </div>
-
-          {/* 3. Stack-based Attendance & Reflection System */}
+          {/* 2. Stack-based Attendance & Academic Progress Metrics */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 items-stretch">
             {/* Student Lecture Attendance & Reflection Stack Card (Span 2 cols on lg) */}
             <div className="lg:col-span-2">
@@ -237,17 +213,36 @@ export default function DashboardPage() {
               />
             </div>
 
-            {/* Mini Stat Cards Column (Span 1 col on lg) */}
-            <div className="flex flex-col gap-4 sm:gap-5 justify-between">
+            {/* Academic Milestone & Progress Stat Cards Column (Span 1 col on lg) */}
+            <div className="flex flex-col justify-between gap-3 sm:gap-3.5 h-full">
+              {/* 1. Certificate issued */}
               <MiniStatCard
                 title="Certificates issued"
-                subtitle="Programs completed"
+                subtitle="1 of 3 programs completed"
                 percentage={33}
                 icon="award"
               />
+
+              {/* 2. Course completion (In between) */}
+              <MiniStatCard
+                title="Course completion"
+                subtitle="24% completed • 76% remaining"
+                percentage={24}
+                icon="book"
+              />
+
+              {/* 3. Live attendance (In between) */}
+              <MiniStatCard
+                title="Live attendance"
+                subtitle={`${studentAttendance.attendedSessions} of ${studentAttendance.totalSessions} sessions attended`}
+                percentage={studentAttendance.percentage}
+                icon="video"
+              />
+
+              {/* 4. Ticket resolve */}
               <MiniStatCard
                 title="Tickets resolved"
-                subtitle="0 of 2 closed"
+                subtitle="0 of 2 closed • 2 open"
                 percentage={0}
                 icon="ticket"
               />
