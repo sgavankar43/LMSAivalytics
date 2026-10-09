@@ -92,8 +92,8 @@ export const AdminDashboard: React.FC = () => {
   };
 
   // Event handlers
-  const handleAddEvent = (newEventData: Omit<SessionItem, 'id'>) => {
-    const newEvent = addSession(newEventData);
+  const handleAddEvent = async (newEventData: Omit<SessionItem, 'id'>) => {
+    const newEvent = await addSession(newEventData);
     showToast(`Session "${newEvent.title}" scheduled & attendance roster created.`);
   };
 

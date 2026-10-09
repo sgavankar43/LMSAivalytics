@@ -45,7 +45,7 @@ async function main() {
 
   // Remove existing sessions, enrollments, certificates, lessons, modules associated with old courses
   await prisma.attendanceRecord.deleteMany({});
-  await prisma.session.deleteMany({});
+  await prisma.classSession.deleteMany({});
   await prisma.enrollment.deleteMany({});
   await prisma.certificate.deleteMany({});
   await prisma.lesson.deleteMany({});
@@ -97,7 +97,6 @@ async function main() {
         order: les.order,
         durationMin: les.durationMin,
         videoUrl: 'https://example.com/videos/module-1-lesson',
-        isCompleted: les.order <= 4, // 4 completed in active term
       },
     });
   }
@@ -129,7 +128,6 @@ async function main() {
         order: les.order,
         durationMin: les.durationMin,
         videoUrl: 'https://example.com/videos/module-2-lesson',
-        isCompleted: false,
       },
     });
   }
@@ -161,7 +159,6 @@ async function main() {
         order: les.order,
         durationMin: les.durationMin,
         videoUrl: 'https://example.com/videos/module-3-lesson',
-        isCompleted: false,
       },
     });
   }
@@ -186,41 +183,41 @@ async function main() {
 
   // 6. Seed Sessions
   console.log('\n📅 Seeding Live Lectures & Recordings for flagship course...');
-  await prisma.session.createMany({
+  await prisma.classSession.createMany({
     data: [
       {
-        courseId: flagshipCourse.id,
+        course: flagshipCourse.title,
         title: 'Masterclass: Context Engineering & The CTID Framework',
         type: 'RECORDING',
-        status: 'CLOSED',
-        scheduledAt: new Date('2026-08-10T10:00:00Z'),
+        status: 'Closed',
+        startTime: new Date('2026-08-10T10:00:00Z'),
         durationMinutes: 90,
         recordingUrl: 'https://example.com/recordings/context-engineering',
       },
       {
-        courseId: flagshipCourse.id,
+        course: flagshipCourse.title,
         title: 'Workshop: SOP Engineering & Machine-Actionable Documentation',
         type: 'RECORDING',
-        status: 'CLOSED',
-        scheduledAt: new Date('2026-08-18T14:00:00Z'),
+        status: 'Closed',
+        startTime: new Date('2026-08-18T14:00:00Z'),
         durationMinutes: 75,
         recordingUrl: 'https://example.com/recordings/sop-engineering',
       },
       {
-        courseId: flagshipCourse.id,
+        course: flagshipCourse.title,
         title: 'Live Lab: Multi-Agent Topology & n8n Orchestration Architecture',
         type: 'LIVE',
-        status: 'IN_PROGRESS',
-        scheduledAt: new Date(),
+        status: 'In Progress',
+        startTime: new Date(),
         durationMinutes: 90,
         meetingUrl: 'https://meet.aivalytics.com/live-orchestration-lab',
       },
       {
-        courseId: flagshipCourse.id,
+        course: flagshipCourse.title,
         title: 'Cohort Review: Tiered Autonomy Framework & Decision Rights Mapping',
         type: 'LIVE',
-        status: 'UPCOMING',
-        scheduledAt: new Date(Date.now() + 86400000 * 3),
+        status: 'Upcoming',
+        startTime: new Date(Date.now() + 86400000 * 3),
         durationMinutes: 90,
         meetingUrl: 'https://meet.aivalytics.com/tiered-autonomy-review',
       },

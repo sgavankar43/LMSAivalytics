@@ -166,7 +166,7 @@ export const CsvQuizUploadModal: React.FC<CsvQuizUploadModalProps> = ({
     }
   };
 
-  const handleCreateQuiz = (e: React.FormEvent) => {
+  const handleCreateQuiz = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
       setParseError('Please specify an Assessment Title.');
@@ -180,7 +180,7 @@ export const CsvQuizUploadModal: React.FC<CsvQuizUploadModalProps> = ({
     const selectedCourse = coursesList.find((c) => c.code === courseCode);
     const courseName = selectedCourse ? selectedCourse.name : 'Institutional Studies';
 
-    const result = createQuizFromCsv({
+    const result = await createQuizFromCsv({
       title: title.trim(),
       courseCode,
       courseName,

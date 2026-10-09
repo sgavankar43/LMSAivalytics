@@ -1,12 +1,14 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { Course, CurriculumModule, CourseSubmodule } from '@/types';
 import {
   flagshipCourse,
   flagshipCoursesList,
   initialCurriculumModules,
 } from '@/data/flagshipCourseData';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 
 interface AdminAddModuleParams {
   courseId?: string;
@@ -52,80 +54,202 @@ interface CourseContextType {
   courseProgress: number;
   totalLessons: number;
   completedLessonsCount: number;
+  isLoading: boolean;
   // Admin Operations
-  adminAddModule: (params: AdminAddModuleParams) => CurriculumModule;
-  adminEditModule: (params: AdminEditModuleParams) => void;
-  adminDeleteModule: (moduleId: string) => void;
-  adminAddSubmodule: (params: AdminAddSubmoduleParams) => CourseSubmodule;
-  adminEditSubmodule: (params: AdminEditSubmoduleParams) => void;
-  adminDeleteSubmodule: (submoduleId: string) => void;
+  adminAddModule: (params: AdminAddModuleParams) => Promise<CurriculumModule>;
+  adminEditModule: (params: AdminEditModuleParams) => Promise<void>;
+  adminDeleteModule: (moduleId: string) => Promise<void>;
+  adminAddSubmodule: (params: AdminAddSubmoduleParams) => Promise<CourseSubmodule>;
+  adminEditSubmodule: (params: AdminEditSubmoduleParams) => Promise<void>;
+  adminDeleteSubmodule: (submoduleId: string) => Promise<void>;
   // Learner Operations
-  toggleLessonComplete: (lessonId: string) => void;
+  toggleLessonComplete: (lessonId: string) => Promise<void>;
   isLessonCompleted: (lessonId: string) => boolean;
   getCourseById: (courseId: string) => Course | undefined;
   getModuleById: (moduleId: string) => CurriculumModule | undefined;
   getSubmoduleById: (submoduleId: string) => CourseSubmodule | undefined;
+  refreshCourseData: () => Promise<void>;
 }
 
 const CourseContext = createContext<CourseContextType | undefined>(undefined);
 
-const COURSES_STORAGE_KEY = 'aivalytics_lms_courses_v2';
-const MODULES_STORAGE_KEY = 'aivalytics_lms_curriculum_modules_v2';
-const COMPLETED_LESSONS_STORAGE_KEY = 'aivalytics_lms_completed_lessons_v2';
+const MODULES_STORAGE_KEY = 'aivalytics_lms_curriculum_modules_v3';
+const COMPLETED_LESSONS_STORAGE_KEY = 'aivalytics_lms_completed_lessons_v3';
 
 export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>(flagshipCoursesList);
-  const [modules, setModules] = useState<CurriculumModule[]>(initialCurriculumModules);
-  const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([
-    'sub_1_1',
-    'sub_1_2',
-    'sub_1_3',
-    'sub_1_4',
-  ]);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  // Load from localStorage on client mount
-  useEffect(() => {
+  const [modules, setModules] = useState<CurriculumModule[]>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const storedModules = localStorage.getItem(MODULES_STORAGE_KEY);
-        const storedCompleted = localStorage.getItem(COMPLETED_LESSONS_STORAGE_KEY);
-
-        if (storedModules) {
-          const parsed = JSON.parse(storedModules);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setModules(parsed);
-          }
-        }
-
-        if (storedCompleted) {
-          const parsedComp = JSON.parse(storedCompleted);
-          if (Array.isArray(parsedComp)) {
-            setCompletedLessonIds(parsedComp);
-          }
+        const stored = localStorage.getItem(MODULES_STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         }
       } catch (err) {
-        console.error('Failed to load course state from localStorage', err);
-      } finally {
-        setIsLoaded(true);
+        console.error('Failed to load cached modules:', err);
       }
     }
-  }, []);
+    return initialCurriculumModules;
+  });
 
-  // Save to localStorage when state changes
+  const [completedLessonIds, setCompletedLessonIds] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(COMPLETED_LESSONS_STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch (err) {
+        console.error('Failed to load cached lesson completion:', err);
+      }
+    }
+    return ['sub_1_1', 'sub_1_2', 'sub_1_3', 'sub_1_4'];
+  });
+
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Sync to localStorage
   useEffect(() => {
-    if (isLoaded && typeof window !== 'undefined') {
+    if (typeof window !== 'undefined') {
       try {
         localStorage.setItem(MODULES_STORAGE_KEY, JSON.stringify(modules));
         localStorage.setItem(COMPLETED_LESSONS_STORAGE_KEY, JSON.stringify(completedLessonIds));
       } catch (err) {
-        console.error('Failed to save course state to localStorage', err);
+        console.error('Failed to cache course state:', err);
       }
     }
-  }, [modules, completedLessonIds, isLoaded]);
+  }, [modules, completedLessonIds]);
+
+  // Fetch course, modules, lessons and user progress from Supabase Postgres
+  const fetchCourseDataFromDb = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      // 1. Fetch Course with modules and lessons
+      const { data: courseRows, error: courseErr } = await supabase
+        .from('Course')
+        .select(`
+          id,
+          code,
+          title,
+          description,
+          category,
+          modules:CourseModule (
+            id,
+            title,
+            subtitle,
+            weeks,
+            certificationName,
+            order,
+            courseId,
+            lessons:Lesson (
+              id,
+              title,
+              description,
+              order,
+              durationMin,
+              videoUrl,
+              type,
+              moduleId
+            )
+          )
+        `)
+        .eq('code', 'AINPM-101')
+        .maybeSingle();
+
+      if (courseErr) {
+        console.warn('Supabase course fetch notice:', courseErr.message);
+      } else if (courseRows && courseRows.modules && courseRows.modules.length > 0) {
+        const sortedModules = (courseRows.modules as any[])
+          .sort((a, b) => a.order - b.order)
+          .map((m, idx) => {
+            const sortedLessons = (m.lessons || []).sort((a: any, b: any) => a.order - b.order);
+            const submodules: CourseSubmodule[] = sortedLessons.map((l: any, lIdx: number) => ({
+              id: l.id,
+              moduleId: m.id,
+              subpartCode: `${m.order || idx + 1}.${l.order || lIdx + 1}`,
+              title: l.title,
+              description: l.description || '',
+              duration: `${l.durationMin || 45}m`,
+              videoUrl: l.videoUrl || 'https://example.com/videos/module-1-lesson',
+              type: l.type || 'video',
+              isCompleted: false, // Computed below with user progress
+              order: l.order || lIdx + 1,
+              takeaways: ['Key framework application & execution best practices.'],
+              resources: [
+                { name: `${l.title.replace(/\s+/g, '_')}_Study_Guide.pdf`, url: '#', size: '1.8 MB' },
+              ],
+            }));
+
+            return {
+              id: m.id,
+              courseId: m.courseId || courseRows.id,
+              moduleNumber: m.order || idx + 1,
+              title: m.title,
+              subtitle: m.subtitle || '',
+              weeks: m.weeks || `Weeks ${(idx * 4) + 1}–${(idx + 1) * 4}`,
+              certificationName: m.certificationName || `${m.title} Certified`,
+              order: m.order || idx + 1,
+              status: idx === 0 ? ('active' as const) : ('upcoming' as const),
+              submodules,
+            };
+          });
+
+        setModules(sortedModules);
+      }
+
+      // 2. Fetch UserLessonProgress if user is logged in
+      if (user?.id) {
+        const { data: progressData, error: progErr } = await supabase
+          .from('UserLessonProgress')
+          .select('lessonId, completed')
+          .eq('userId', user.id);
+
+        if (!progErr && progressData) {
+          const completedIds = progressData
+            .filter((p: any) => p.completed)
+            .map((p: any) => p.lessonId);
+          setCompletedLessonIds(completedIds);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to sync course data from DB:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
+  // Realtime subscription for CourseModule and Lesson changes
+  useEffect(() => {
+    fetchCourseDataFromDb();
+
+    if (!isSupabaseConfigured) return;
+
+    const channel = supabase
+      .channel('realtime:curriculum')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'CourseModule' }, () => {
+        fetchCourseDataFromDb();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Lesson' }, () => {
+        fetchCourseDataFromDb();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchCourseDataFromDb]);
 
   // Derived metrics
-  const allSubmodules = modules.flatMap((m) => m.submodules);
+  const allSubmodules = useMemo(() => modules.flatMap((m) => m.submodules), [modules]);
   const totalLessons = allSubmodules.length;
   const completedLessonsCount = allSubmodules.filter((s) =>
     completedLessonIds.includes(s.id)
@@ -135,17 +259,19 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     totalLessons > 0 ? Math.round((completedLessonsCount / totalLessons) * 100) : 0;
 
   // Active course with dynamically computed metrics
-  const activeCourse: Course = {
-    ...flagshipCourse,
-    totalModules: modules.length,
-    totalLessons,
-    completedLessons: completedLessonsCount,
-    progress: courseProgress,
-    modules,
-  };
+  const activeCourse: Course = useMemo(
+    () => ({
+      ...flagshipCourse,
+      totalModules: modules.length,
+      totalLessons,
+      completedLessons: completedLessonsCount,
+      progress: courseProgress,
+      modules,
+    }),
+    [modules, totalLessons, completedLessonsCount, courseProgress]
+  );
 
-  // Synchronized courses array
-  const currentCourses: Course[] = [activeCourse];
+  const currentCourses = useMemo(() => [activeCourse], [activeCourse]);
 
   // Helper getters
   const getCourseById = (courseId: string) => {
@@ -164,27 +290,45 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return completedLessonIds.includes(lessonId);
   };
 
-  // Learner Action: Toggle lesson completion
-  const toggleLessonComplete = (lessonId: string) => {
-    setCompletedLessonIds((prev) => {
-      const isAlreadyDone = prev.includes(lessonId);
-      const next = isAlreadyDone
-        ? prev.filter((id) => id !== lessonId)
-        : [...prev, lessonId];
-      return next;
-    });
+  // Learner Action: Toggle lesson completion with DB persistence
+  const toggleLessonComplete = async (lessonId: string) => {
+    const isCurrentlyDone = completedLessonIds.includes(lessonId);
+    const nextCompleted = !isCurrentlyDone;
+
+    // 1. Optimistic update
+    setCompletedLessonIds((prev) =>
+      isCurrentlyDone ? prev.filter((id) => id !== lessonId) : [...prev, lessonId]
+    );
+
+    // 2. Persist to UserLessonProgress in Supabase
+    if (isSupabaseConfigured && user?.id) {
+      try {
+        await supabase.from('UserLessonProgress').upsert(
+          {
+            userId: user.id,
+            lessonId,
+            completed: nextCompleted,
+            completedAt: nextCompleted ? new Date().toISOString() : null,
+          },
+          { onConflict: 'userId,lessonId' }
+        );
+      } catch (err) {
+        console.error('Error saving lesson progress to DB:', err);
+      }
+    }
   };
 
-  // Admin Action: Add Module
-  const adminAddModule = ({
+  // Admin Action: Add Module with DB persistence
+  const adminAddModule = async ({
     title,
     subtitle,
     weeks,
     certificationName,
-  }: AdminAddModuleParams): CurriculumModule => {
+  }: AdminAddModuleParams): Promise<CurriculumModule> => {
     const nextNumber = modules.length + 1;
+    const tempId = `mod_${Date.now()}`;
     const newModule: CurriculumModule = {
-      id: `mod_${Date.now()}`,
+      id: tempId,
       courseId: activeCourse.id,
       moduleNumber: nextNumber,
       title: title.trim(),
@@ -197,11 +341,40 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     setModules((prev) => [...prev, newModule]);
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data: dbMod, error } = await supabase
+          .from('CourseModule')
+          .insert({
+            courseId: activeCourse.id,
+            title: title.trim(),
+            subtitle: subtitle.trim(),
+            weeks: weeks.trim(),
+            certificationName: certificationName?.trim() || `${title.trim()} Certified`,
+            order: nextNumber,
+          })
+          .select()
+          .single();
+
+        if (!error && dbMod) {
+          const persisted: CurriculumModule = {
+            ...newModule,
+            id: dbMod.id,
+          };
+          setModules((prev) => prev.map((m) => (m.id === tempId ? persisted : m)));
+          return persisted;
+        }
+      } catch (err) {
+        console.error('Error inserting CourseModule to DB:', err);
+      }
+    }
+
     return newModule;
   };
 
-  // Admin Action: Edit Module
-  const adminEditModule = ({
+  // Admin Action: Edit Module with DB persistence
+  const adminEditModule = async ({
     moduleId,
     title,
     subtitle,
@@ -220,23 +393,46 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         };
       })
     );
+
+    if (isSupabaseConfigured) {
+      try {
+        await supabase
+          .from('CourseModule')
+          .update({
+            title: title.trim(),
+            subtitle: subtitle.trim(),
+            weeks: weeks.trim(),
+            certificationName: certificationName?.trim(),
+          })
+          .eq('id', moduleId);
+      } catch (err) {
+        console.error('Error updating CourseModule in DB:', err);
+      }
+    }
   };
 
-  // Admin Action: Delete Module
-  const adminDeleteModule = (moduleId: string) => {
+  // Admin Action: Delete Module with DB persistence
+  const adminDeleteModule = async (moduleId: string) => {
     setModules((prev) => {
       const filtered = prev.filter((m) => m.id !== moduleId);
-      // Re-number modules sequentially
       return filtered.map((m, idx) => ({
         ...m,
         moduleNumber: idx + 1,
         order: idx + 1,
       }));
     });
+
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('CourseModule').delete().eq('id', moduleId);
+      } catch (err) {
+        console.error('Error deleting CourseModule from DB:', err);
+      }
+    }
   };
 
-  // Admin Action: Add Sub-module (Lesson)
-  const adminAddSubmodule = ({
+  // Admin Action: Add Sub-module (Lesson) with DB persistence
+  const adminAddSubmodule = async ({
     moduleId,
     title,
     description,
@@ -244,18 +440,20 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     videoUrl,
     type = 'video',
     takeaways = [],
-  }: AdminAddSubmoduleParams): CourseSubmodule => {
+  }: AdminAddSubmoduleParams): Promise<CourseSubmodule> => {
     const targetModule = modules.find((m) => m.id === moduleId);
     const modNumber = targetModule?.moduleNumber || 1;
     const currentSubCount = (targetModule?.submodules.length || 0) + 1;
+    const tempId = `sub_${Date.now()}`;
+    const durationMin = parseInt(duration) || 45;
 
     const newSubmodule: CourseSubmodule = {
-      id: `sub_${Date.now()}`,
+      id: tempId,
       moduleId,
       subpartCode: `${modNumber}.${currentSubCount}`,
       title: title.trim(),
       description: description.trim(),
-      duration: duration.trim(),
+      duration: `${durationMin}m`,
       videoUrl: videoUrl?.trim() || 'https://example.com/videos/lecture-placeholder',
       type,
       isCompleted: false,
@@ -276,11 +474,48 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       })
     );
 
+    if (isSupabaseConfigured) {
+      try {
+        const { data: dbLesson, error } = await supabase
+          .from('Lesson')
+          .insert({
+            moduleId,
+            title: title.trim(),
+            description: description.trim(),
+            durationMin,
+            videoUrl: videoUrl?.trim() || 'https://example.com/videos/lecture-placeholder',
+            type,
+            order: currentSubCount,
+          })
+          .select()
+          .single();
+
+        if (!error && dbLesson) {
+          const persisted: CourseSubmodule = {
+            ...newSubmodule,
+            id: dbLesson.id,
+          };
+          setModules((prev) =>
+            prev.map((m) => {
+              if (m.id !== moduleId) return m;
+              return {
+                ...m,
+                submodules: m.submodules.map((s) => (s.id === tempId ? persisted : s)),
+              };
+            })
+          );
+          return persisted;
+        }
+      } catch (err) {
+        console.error('Error inserting Lesson to DB:', err);
+      }
+    }
+
     return newSubmodule;
   };
 
-  // Admin Action: Edit Submodule
-  const adminEditSubmodule = ({
+  // Admin Action: Edit Submodule with DB persistence
+  const adminEditSubmodule = async ({
     submoduleId,
     title,
     description,
@@ -289,6 +524,8 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     type,
     takeaways,
   }: AdminEditSubmoduleParams) => {
+    const durationMin = duration ? parseInt(duration) || 45 : undefined;
+
     setModules((prev) =>
       prev.map((m) => {
         const hasSub = m.submodules.some((s) => s.id === submoduleId);
@@ -311,17 +548,32 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         };
       })
     );
+
+    if (isSupabaseConfigured) {
+      try {
+        const updatePayload: Record<string, any> = {
+          title: title.trim(),
+          description: description.trim(),
+        };
+        if (durationMin !== undefined) updatePayload.durationMin = durationMin;
+        if (videoUrl !== undefined) updatePayload.videoUrl = videoUrl.trim();
+        if (type !== undefined) updatePayload.type = type;
+
+        await supabase.from('Lesson').update(updatePayload).eq('id', submoduleId);
+      } catch (err) {
+        console.error('Error updating Lesson in DB:', err);
+      }
+    }
   };
 
-  // Admin Action: Delete Submodule
-  const adminDeleteSubmodule = (submoduleId: string) => {
+  // Admin Action: Delete Submodule with DB persistence
+  const adminDeleteSubmodule = async (submoduleId: string) => {
     setModules((prev) =>
       prev.map((m) => {
         const hasSub = m.submodules.some((s) => s.id === submoduleId);
         if (!hasSub) return m;
 
         const filtered = m.submodules.filter((s) => s.id !== submoduleId);
-        // Re-index subpart codes
         const reindexed = filtered.map((s, idx) => ({
           ...s,
           subpartCode: `${m.moduleNumber}.${idx + 1}`,
@@ -334,6 +586,14 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         };
       })
     );
+
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('Lesson').delete().eq('id', submoduleId);
+      } catch (err) {
+        console.error('Error deleting Lesson from DB:', err);
+      }
+    }
   };
 
   return (
@@ -346,6 +606,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         courseProgress,
         totalLessons,
         completedLessonsCount,
+        isLoading,
         adminAddModule,
         adminEditModule,
         adminDeleteModule,
@@ -357,6 +618,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         getCourseById,
         getModuleById,
         getSubmoduleById,
+        refreshCourseData: fetchCourseDataFromDb,
       }}
     >
       {children}

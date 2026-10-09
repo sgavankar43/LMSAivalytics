@@ -244,33 +244,33 @@ async function main() {
 
   // 5. Upsert Sessions
   console.log('Seeding Live and Recorded Sessions...');
-  await prisma.session.deleteMany({ where: { courseId: course1.id } });
-  await prisma.session.createMany({
+  await prisma.classSession.deleteMany({ where: { course: course1.title } });
+  await prisma.classSession.createMany({
     data: [
       {
-        courseId: course1.id,
+        course: course1.title,
         title: 'Orientation & Program Overview',
         type: 'RECORDING',
-        status: 'CLOSED',
-        scheduledAt: new Date('2026-08-04T10:00:00Z'),
+        status: 'Closed',
+        startTime: new Date('2026-08-04T10:00:00Z'),
         durationMinutes: 90,
         recordingUrl: 'https://example.com/recordings/orientation',
       },
       {
-        courseId: course1.id,
+        course: course1.title,
         title: 'Session 1: Academic Policies',
         type: 'RECORDING',
-        status: 'CLOSED',
-        scheduledAt: new Date('2026-08-11T14:00:00Z'),
+        status: 'Closed',
+        startTime: new Date('2026-08-11T14:00:00Z'),
         durationMinutes: 75,
         recordingUrl: 'https://example.com/recordings/academic-policies',
       },
       {
-        courseId: course1.id,
+        course: course1.title,
         title: 'Session 2: Grading & Evaluation',
         type: 'LIVE',
-        status: 'IN_PROGRESS',
-        scheduledAt: new Date(),
+        status: 'In Progress',
+        startTime: new Date(),
         durationMinutes: 90,
         meetingUrl: 'https://meet.aivalytics.com/session-grading-eval',
       },
@@ -298,6 +298,8 @@ async function main() {
     data: [
       {
         userId: learnerId,
+        studentName: 'Alex Morgan',
+        studentEmail: 'alex.morgan@aivalytics.com',
         subject: 'Access permission issue for Session 1 Quiz on Research Design',
         description:
           'When clicking on the Session 1 graded quiz submission link, the portal returns permission error 403. Need access verified before Sunday midnight cutoff.',
@@ -305,6 +307,8 @@ async function main() {
       },
       {
         userId: learnerId,
+        studentName: 'Alex Morgan',
+        studentEmail: 'alex.morgan@aivalytics.com',
         subject: 'Recording download audio desync in Academic Policies lecture',
         description:
           'The downloadable MP4 lecture video has a 2-second audio delay around timestamp 34:10 during the honor code presentation.',

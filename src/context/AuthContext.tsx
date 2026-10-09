@@ -4,7 +4,6 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '@/types';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { mockUser, mockAdminUser } from '@/data/mockData';
 
 interface AuthContextType {
   user: User | null;
@@ -14,13 +13,84 @@ interface AuthContextType {
   signIn: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   signUp: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
-  switchRole: (role: UserRole) => void;
-  updateUser: (updatedData: Partial<User>) => void;
+  updateUser: (updatedData: Partial<User>) => Promise<void> | void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Resolve user role from the Prisma User table (source of truth)
+async function resolveUserFromDb(authUser: {
+  id: string;
+  email?: string;
+  user_metadata?: Record<string, unknown>;
+}): Promise<User | null> {
+  const email = authUser.email || '';
+
+  try {
+    // Query the User table for this auth user's profile & role
+    const { data: dbUser, error } = await supabase
+      .from('User')
+      .select('id, email, fullName, role, avatarUrl, term, phone, location, cohort, bio, headline, department')
+      .eq('email', email.toLowerCase())
+      .maybeSingle();
+
+    if (!error && dbUser) {
+      // Map Prisma Role enum (ADMIN/LEARNER/INSTRUCTOR) to app UserRole (admin/learner)
+      const appRole: UserRole = dbUser.role === 'ADMIN' ? 'admin' : 'learner';
+      const fullName = dbUser.fullName || email.split('@')[0] || 'User';
+      const initials = fullName
+        .split(' ')
+        .filter(Boolean)
+        .map((n: string) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+
+      return {
+        id: dbUser.id,
+        name: fullName,
+        email: dbUser.email,
+        initials: initials || 'U',
+        role: appRole,
+        avatar: dbUser.avatarUrl || undefined,
+        term: dbUser.term || undefined,
+        phone: dbUser.phone || undefined,
+        location: dbUser.location || undefined,
+        cohort: dbUser.cohort || undefined,
+        bio: dbUser.bio || undefined,
+        headline: dbUser.headline || undefined,
+        department: dbUser.department || undefined,
+      };
+    }
+  } catch (err) {
+    console.error('Failed to resolve user from DB:', err);
+  }
+
+  // Fallback: user exists in Supabase Auth but NOT in User table.
+  // Create a minimal profile from auth metadata.
+  const fullName =
+    (authUser.user_metadata?.full_name as string) || email.split('@')[0] || 'User';
+  const initials = fullName
+    .split(' ')
+    .filter(Boolean)
+    .map((n: string) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
+  return {
+    id: authUser.id,
+    name: fullName,
+    email,
+    initials: initials || 'U',
+    role: 'learner', // Default to learner — admin access requires DB-level role assignment
+    term: undefined,
+  };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  // Initialize from localStorage cache for instant render (avoids flash), but always
+  // re-validate against Supabase Auth on mount.
   const [user, setUser] = useState<User | null>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -30,38 +100,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('Error loading saved user', err);
       }
     }
-    return mockUser;
+    return null; // No mock fallback — unauthenticated users are null
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const router = useRouter();
 
-  // Helper to format a Supabase Auth user object into our LMS User model
-  const formatSupabaseUser = (authUser: { id: string; email?: string; user_metadata?: Record<string, unknown> }): User => {
-    const email = authUser.email || '';
-    let defaultLearnerName = 'Alex Morgan';
-    if (email.toLowerCase().startsWith('sarah')) defaultLearnerName = 'Sarah Connor';
-    else if (email.toLowerCase().startsWith('david')) defaultLearnerName = 'David Miller';
-    else if (email.toLowerCase().startsWith('emily')) defaultLearnerName = 'Emily Watson';
-
-    const fullName =
-      (authUser.user_metadata?.full_name as string) ||
-      (email.toLowerCase().includes('admin') ? 'Admin Faculty' : defaultLearnerName);
-    const initials = fullName
-      .split(' ')
-      .map((n: string) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-
-    return {
-      id: authUser.id,
-      name: fullName,
-      email,
-      initials: initials || 'AM',
-      role: email.toLowerCase().includes('admin') ? 'admin' : 'learner',
-      term: 'Fall 2026',
-    };
-  };
+  // Sync user state to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (user) {
+        localStorage.setItem('aivalytics_active_user', JSON.stringify(user));
+      } else {
+        localStorage.removeItem('aivalytics_active_user');
+      }
+    }
+  }, [user]);
 
   useEffect(() => {
     async function initSupabaseSession() {
@@ -77,7 +130,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error('Supabase session retrieval error:', error.message);
           setUser(null);
         } else if (session?.user) {
-          setUser(formatSupabaseUser(session.user));
+          const resolved = await resolveUserFromDb(session.user);
+          setUser(resolved);
         } else {
           setUser(null);
         }
@@ -94,9 +148,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Subscribe to live Supabase Auth state changes (sign in, sign out, token refresh)
     if (isSupabaseConfigured && supabase) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
+        async (_event, session) => {
           if (session?.user) {
-            setUser(formatSupabaseUser(session.user));
+            const resolved = await resolveUserFromDb(session.user);
+            setUser(resolved);
           } else {
             setUser(null);
           }
@@ -130,7 +185,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data.user) {
-        setUser(formatSupabaseUser(data.user));
+        const resolved = await resolveUserFromDb(data.user);
+        setUser(resolved);
       }
 
       setIsLoading(false);
@@ -167,18 +223,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.replace('/login');
   };
 
-  const switchRole = (newRole: UserRole) => {
-    const baseUser = newRole === 'admin' ? mockAdminUser : mockUser;
-    setUser(baseUser);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('aivalytics_active_user', JSON.stringify(baseUser));
-    }
-  };
-
-  const updateUser = (updatedData: Partial<User>) => {
+  const updateUser = async (updatedData: Partial<User>) => {
     setUser((prev) => {
-      const current = prev || mockUser;
-      const updated = { ...current, ...updatedData };
+      if (!prev) return prev;
+      const updated = { ...prev, ...updatedData };
       if (updatedData.name) {
         const initials = updatedData.name
           .trim()
@@ -188,13 +236,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .join('')
           .toUpperCase()
           .slice(0, 2);
-        updated.initials = initials || current.initials;
-      }
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('aivalytics_active_user', JSON.stringify(updated));
+        updated.initials = initials || prev.initials;
       }
       return updated;
     });
+
+    if (user?.id && isSupabaseConfigured && supabase) {
+      try {
+        const payload: Record<string, unknown> = {};
+        if (updatedData.name !== undefined) payload.fullName = updatedData.name;
+        if (updatedData.phone !== undefined) payload.phone = updatedData.phone;
+        if (updatedData.location !== undefined) payload.location = updatedData.location;
+        if (updatedData.headline !== undefined) payload.headline = updatedData.headline;
+        if (updatedData.bio !== undefined) payload.bio = updatedData.bio;
+        if (updatedData.department !== undefined) payload.department = updatedData.department;
+        if (updatedData.cohort !== undefined) payload.cohort = updatedData.cohort;
+
+        if (Object.keys(payload).length > 0) {
+          payload.updatedAt = new Date().toISOString();
+          await supabase.from('User').update(payload).eq('id', user.id);
+        }
+      } catch (err) {
+        console.error('Error persisting profile update to Supabase:', err);
+      }
+    }
   };
 
   return (
@@ -207,7 +272,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signIn,
         signUp,
         signOut,
-        switchRole,
         updateUser,
       }}
     >

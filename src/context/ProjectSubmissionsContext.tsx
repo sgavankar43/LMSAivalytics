@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ProjectModule,
   ProjectSubpart,
@@ -13,6 +13,7 @@ import {
   initialProjectModules,
   initialProjectSubmissions,
 } from '@/data/projectSubmissionsData';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
 
 interface SubmitProjectParams {
   moduleId: string;
@@ -47,7 +48,8 @@ interface ProjectSubmissionsContextType {
   modules: ProjectModule[];
   submissions: StudentProjectSubmission[];
   stats: ProjectSubmissionStats;
-  submitProject: (params: SubmitProjectParams) => StudentProjectSubmission;
+  isLoading: boolean;
+  submitProject: (params: SubmitProjectParams) => Promise<StudentProjectSubmission>;
   adminAddModule: (moduleData: {
     title: string;
     subtitle: string;
@@ -55,11 +57,11 @@ interface ProjectSubmissionsContextType {
     miniChallenge: string;
     deliverableBuild: string;
     certificationName?: string;
-  }) => ProjectModule;
-  adminAddSubpart: (params: AdminAddSubpartParams) => ProjectSubpart;
-  adminUpdateDeadline: (subpartId: string, newDeadline: string) => void;
-  adminDeleteSubpart: (subpartId: string) => void;
-  adminGiveRemark: (params: AdminGiveRemarkParams) => void;
+  }) => Promise<ProjectModule>;
+  adminAddSubpart: (params: AdminAddSubpartParams) => Promise<ProjectSubpart>;
+  adminUpdateDeadline: (subpartId: string, newDeadline: string) => Promise<void>;
+  adminDeleteSubpart: (subpartId: string) => Promise<void>;
+  adminGiveRemark: (params: AdminGiveRemarkParams) => Promise<void>;
   getSubmissionsByStudent: (studentEmail: string) => StudentProjectSubmission[];
   getSubmissionsBySubpart: (subpartId: string) => StudentProjectSubmission[];
   getStudentSubpartSubmission: (
@@ -67,270 +69,493 @@ interface ProjectSubmissionsContextType {
     subpartId: string
   ) => StudentProjectSubmission | undefined;
   getModuleById: (moduleId: string) => ProjectModule | undefined;
+  refreshSubmissions: () => Promise<void>;
 }
 
 const ProjectSubmissionsContext = createContext<ProjectSubmissionsContextType | undefined>(
   undefined
 );
 
-const MODULES_STORAGE_KEY = 'aivalytics_lms_modules_v1';
-const SUBMISSIONS_STORAGE_KEY = 'aivalytics_lms_project_submissions_v1';
+const MODULES_STORAGE_KEY = 'aivalytics_lms_modules_v2';
+const SUBMISSIONS_STORAGE_KEY = 'aivalytics_lms_project_submissions_v2';
 
 export const ProjectSubmissionsProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [modules, setModules] = useState<ProjectModule[]>(initialProjectModules);
-  const [submissions, setSubmissions] =
-    useState<StudentProjectSubmission[]>(initialProjectSubmissions);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  // Load from localStorage on client mount
-  useEffect(() => {
+  const [modules, setModules] = useState<ProjectModule[]>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const storedModules = localStorage.getItem(MODULES_STORAGE_KEY);
-        const storedSubmissions = localStorage.getItem(SUBMISSIONS_STORAGE_KEY);
-
-        if (storedModules) {
-          setModules(JSON.parse(storedModules));
-        }
-        if (storedSubmissions) {
-          setSubmissions(JSON.parse(storedSubmissions));
+        const stored = localStorage.getItem(MODULES_STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         }
       } catch (err) {
-        console.error('Failed to load project submissions from localStorage', err);
-      } finally {
-        setIsLoaded(true);
+        console.error('Failed to load cached project modules', err);
       }
     }
-  }, []);
+    return initialProjectModules;
+  });
 
-  // Save to localStorage when state changes
+  const [submissions, setSubmissions] = useState<StudentProjectSubmission[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(SUBMISSIONS_STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (err) {
+        console.error('Failed to load cached project submissions', err);
+      }
+    }
+    return initialProjectSubmissions;
+  });
+
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Sync to localStorage
   useEffect(() => {
-    if (isLoaded && typeof window !== 'undefined') {
+    if (typeof window !== 'undefined') {
       try {
         localStorage.setItem(MODULES_STORAGE_KEY, JSON.stringify(modules));
         localStorage.setItem(SUBMISSIONS_STORAGE_KEY, JSON.stringify(submissions));
       } catch (err) {
-        console.error('Failed to save project submissions to localStorage', err);
+        console.error('Failed to cache project state', err);
       }
     }
-  }, [modules, submissions, isLoaded]);
+  }, [modules, submissions]);
 
-  // Derived Stats
-  const totalSubparts = modules.reduce((sum, m) => sum + m.subparts.length, 0);
-  const totalSubmissions = submissions.length;
-  const pendingReview = submissions.filter((s) => s.status === 'PENDING_REVIEW').length;
-  const approvedCount = submissions.filter(
-    (s) => s.status === 'APPROVED' || s.status === 'EXCELLENT'
-  ).length;
-  const revisionRequestedCount = submissions.filter(
-    (s) => s.status === 'REVISION_REQUESTED'
-  ).length;
-
-  const stats: ProjectSubmissionStats = {
-    totalSubparts,
-    totalSubmissions,
-    pendingReview,
-    approvedCount,
-    revisionRequestedCount,
-  };
-
-  // Submit Project (Student Action)
-  const submitProject = ({
-    moduleId,
-    subpartId,
-    studentId,
-    studentName,
-    studentEmail,
-    files,
-    links,
-    studentNotes,
-  }: SubmitProjectParams): StudentProjectSubmission => {
-    const now = new Date();
-    const formattedDate = `${now.toLocaleDateString('en-US', {
-      month: 'short',
-      day: '2-digit',
-      year: 'numeric',
-    })} • ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
-
-    // Find parent module to find maxPoints for subpart
-    const targetModule = modules.find((m) => m.id === moduleId);
-    const targetSubpart = targetModule?.subparts.find((s) => s.id === subpartId);
-    const maxPoints = targetSubpart?.maxPoints || 100;
-
-    // Check if an existing submission exists for this student & subpart
-    const existingIndex = submissions.findIndex(
-      (s) =>
-        s.subpartId === subpartId &&
-        s.studentEmail.toLowerCase() === studentEmail.toLowerCase()
-    );
-
-    let updatedSubmission: StudentProjectSubmission;
-
-    if (existingIndex >= 0) {
-      // Overwrite/update with new revision
-      updatedSubmission = {
-        ...submissions[existingIndex],
-        files,
-        links,
-        studentNotes: studentNotes || submissions[existingIndex].studentNotes,
-        submittedAt: formattedDate,
-        status: 'PENDING_REVIEW', // Reset to pending review upon resubmission
-      };
-
-      setSubmissions((prev) => {
-        const next = [...prev];
-        next[existingIndex] = updatedSubmission;
-        return next;
-      });
-    } else {
-      // Create new submission record
-      updatedSubmission = {
-        id: `subm_${Date.now()}`,
-        moduleId,
-        subpartId,
-        studentId,
-        studentName,
-        studentEmail,
-        submittedAt: formattedDate,
-        files,
-        links,
-        studentNotes,
-        status: 'PENDING_REVIEW',
-        maxPoints,
-      };
-
-      setSubmissions((prev) => [updatedSubmission, ...prev]);
+  // Fetch project modules and submissions from Supabase Postgres
+  const fetchProjectsFromDb = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      setIsLoading(false);
+      return;
     }
 
-    return updatedSubmission;
+    try {
+      setIsLoading(true);
+
+      const { data: moduleData, error: modError } = await supabase
+        .from('ProjectModule')
+        .select(`
+          id,
+          title,
+          subtitle,
+          weeks,
+          miniChallenge,
+          deliverableBuild,
+          certificationName,
+          order,
+          subparts:ProjectSubpart (
+            id,
+            subpartCode,
+            title,
+            description,
+            deadline,
+            allowedFormats,
+            maxPoints,
+            guidelines,
+            order
+          )
+        `)
+        .order('order', { ascending: true });
+
+      if (!modError && moduleData && moduleData.length > 0) {
+        const formattedModules: ProjectModule[] = moduleData.map((m: any, idx: number) => ({
+          id: m.id,
+          moduleNumber: m.order || idx + 1,
+          title: m.title,
+          subtitle: m.subtitle || '',
+          weeks: m.weeks || '',
+          miniChallenge: m.miniChallenge || '',
+          deliverableBuild: m.deliverableBuild || '',
+          certificationName: m.certificationName || `${m.title} Certified`,
+          status: idx === 0 ? ('active' as const) : ('upcoming' as const),
+          subparts: (m.subparts || [])
+            .sort((a: any, b: any) => a.order - b.order)
+            .map((sp: any) => ({
+              id: sp.id,
+              moduleId: m.id,
+              subpartCode: sp.subpartCode,
+              title: sp.title,
+              description: sp.description,
+              deadline: sp.deadline,
+              allowedFormats: sp.allowedFormats || ['pdf', 'link'],
+              maxPoints: sp.maxPoints || 100,
+              guidelines: sp.guidelines || [],
+            })),
+        }));
+
+        setModules(formattedModules);
+      }
+
+      // Fetch Submissions
+      const { data: subData, error: subError } = await supabase
+        .from('ProjectSubmission')
+        .select('*')
+        .order('submittedAt', { ascending: false });
+
+      if (!subError && subData && subData.length > 0) {
+        const formattedSubmissions: StudentProjectSubmission[] = subData.map((s: any) => ({
+          id: s.id,
+          moduleId: s.moduleId,
+          subpartId: s.subpartId,
+          studentId: s.studentId,
+          studentName: s.studentName,
+          studentEmail: s.studentEmail,
+          submittedAt: s.submittedAt
+            ? new Date(s.submittedAt).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })
+            : 'Recent',
+          status: (s.status as SubmissionReviewStatus) || 'PENDING_REVIEW',
+          score: s.score || undefined,
+          maxPoints: s.maxPoints || 100,
+          adminEvaluatorName: s.evaluatorName || undefined,
+          adminRemarks: s.evaluatorRemarks || undefined,
+          adminEvaluatedAt: s.evaluatedAt
+            ? new Date(s.evaluatedAt).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })
+            : undefined,
+          studentNotes: s.studentNotes || undefined,
+          files: (s.filesJson as SubmittedFile[]) || [],
+          links: (s.linksJson as string[]) || [],
+        }));
+
+        setSubmissions(formattedSubmissions);
+      }
+    } catch (err) {
+      console.error('Failed to sync project modules/submissions from DB:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Realtime subscription
+  useEffect(() => {
+    fetchProjectsFromDb();
+
+    if (!isSupabaseConfigured) return;
+
+    const channel = supabase
+      .channel('realtime:projects')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ProjectModule' }, () => {
+        fetchProjectsFromDb();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ProjectSubpart' }, () => {
+        fetchProjectsFromDb();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ProjectSubmission' }, () => {
+        fetchProjectsFromDb();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchProjectsFromDb]);
+
+  // Derived Stats
+  const totalSubparts = useMemo(
+    () => modules.reduce((acc, m) => acc + m.subparts.length, 0),
+    [modules]
+  );
+  const totalSubmissions = submissions.length;
+  const pendingReview = useMemo(
+    () => submissions.filter((s) => s.status === 'PENDING_REVIEW').length,
+    [submissions]
+  );
+  const approvedCount = useMemo(
+    () => submissions.filter((s) => s.status === 'APPROVED' || s.status === 'EXCELLENT').length,
+    [submissions]
+  );
+  const revisionRequestedCount = useMemo(
+    () => submissions.filter((s) => s.status === 'REVISION_REQUESTED').length,
+    [submissions]
+  );
+
+  const stats: ProjectSubmissionStats = useMemo(
+    () => ({
+      totalSubparts,
+      totalSubmissions,
+      pendingReview,
+      approvedCount,
+      revisionRequestedCount,
+    }),
+    [totalSubparts, totalSubmissions, pendingReview, approvedCount, revisionRequestedCount]
+  );
+
+  const submitProject = async (params: SubmitProjectParams): Promise<StudentProjectSubmission> => {
+    const tempId = `subm_${Date.now()}`;
+    const newSubmission: StudentProjectSubmission = {
+      id: tempId,
+      moduleId: params.moduleId,
+      subpartId: params.subpartId,
+      studentId: params.studentId,
+      studentName: params.studentName,
+      studentEmail: params.studentEmail,
+      submittedAt: 'Just now',
+      status: 'PENDING_REVIEW',
+      maxPoints: 100,
+      studentNotes: params.studentNotes,
+      files: params.files,
+      links: params.links,
+    };
+
+    setSubmissions((prev) => {
+      const filtered = prev.filter(
+        (s) => !(s.subpartId === params.subpartId && s.studentEmail.toLowerCase() === params.studentEmail.toLowerCase())
+      );
+      return [newSubmission, ...filtered];
+    });
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data: dbRow } = await supabase
+          .from('ProjectSubmission')
+          .insert({
+            moduleId: params.moduleId,
+            subpartId: params.subpartId,
+            studentId: params.studentId,
+            studentEmail: params.studentEmail,
+            studentName: params.studentName,
+            status: 'PENDING_REVIEW',
+            maxPoints: 100,
+            studentNotes: params.studentNotes || null,
+            filesJson: params.files,
+            linksJson: params.links,
+          })
+          .select()
+          .single();
+
+        if (dbRow) {
+          const persisted: StudentProjectSubmission = {
+            ...newSubmission,
+            id: dbRow.id,
+          };
+          setSubmissions((prev) => prev.map((s) => (s.id === tempId ? persisted : s)));
+          return persisted;
+        }
+      } catch (err) {
+        console.error('Error persisting ProjectSubmission to DB:', err);
+      }
+    }
+
+    return newSubmission;
   };
 
-  // Admin Add New Project Module
-  const adminAddModule = (moduleData: {
+  const adminAddModule = async (moduleData: {
     title: string;
     subtitle: string;
     weeks: string;
     miniChallenge: string;
     deliverableBuild: string;
     certificationName?: string;
-  }): ProjectModule => {
+  }): Promise<ProjectModule> => {
     const nextNumber = modules.length + 1;
+    const tempId = `pmod_${Date.now()}`;
+    const certName = moduleData.certificationName?.trim() || `${moduleData.title.trim()} Certified`;
     const newModule: ProjectModule = {
-      id: `mod_${Date.now()}`,
+      id: tempId,
       moduleNumber: nextNumber,
-      title: moduleData.title,
-      subtitle: moduleData.subtitle,
-      weeks: moduleData.weeks,
-      miniChallenge: moduleData.miniChallenge,
-      deliverableBuild: moduleData.deliverableBuild,
-      certificationName: moduleData.certificationName || `${moduleData.title} Certified`,
-      subparts: [],
+      title: moduleData.title.trim(),
+      subtitle: moduleData.subtitle.trim(),
+      weeks: moduleData.weeks.trim(),
+      miniChallenge: moduleData.miniChallenge.trim(),
+      deliverableBuild: moduleData.deliverableBuild.trim(),
+      certificationName: certName,
       status: 'upcoming',
+      subparts: [],
     };
 
     setModules((prev) => [...prev, newModule]);
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data: dbMod } = await supabase
+          .from('ProjectModule')
+          .insert({
+            title: moduleData.title.trim(),
+            subtitle: moduleData.subtitle.trim(),
+            weeks: moduleData.weeks.trim(),
+            miniChallenge: moduleData.miniChallenge.trim(),
+            deliverableBuild: moduleData.deliverableBuild.trim(),
+            certificationName: certName,
+            order: nextNumber,
+          })
+          .select()
+          .single();
+
+        if (dbMod) {
+          const persisted: ProjectModule = {
+            ...newModule,
+            id: dbMod.id,
+          };
+          setModules((prev) => prev.map((m) => (m.id === tempId ? persisted : m)));
+          return persisted;
+        }
+      } catch (err) {
+        console.error('Error inserting ProjectModule to DB:', err);
+      }
+    }
+
     return newModule;
   };
 
-  // Admin Add Subpart with Deadline
-  const adminAddSubpart = ({
-    moduleId,
-    title,
-    description,
-    deadline,
-    allowedFormats,
-    maxPoints = 100,
-    guidelines = [],
-  }: AdminAddSubpartParams): ProjectSubpart => {
-    const targetModule = modules.find((m) => m.id === moduleId);
-    const subpartCount = (targetModule?.subparts.length || 0) + 1;
-    const modNum = targetModule?.moduleNumber || 1;
+  const adminAddSubpart = async (params: AdminAddSubpartParams): Promise<ProjectSubpart> => {
+    const targetMod = modules.find((m) => m.id === params.moduleId);
+    const modNumber = targetMod?.moduleNumber || 1;
+    const currentCount = (targetMod?.subparts.length || 0) + 1;
+    const tempId = `psub_${Date.now()}`;
 
     const newSubpart: ProjectSubpart = {
-      id: `sub_${Date.now()}`,
-      moduleId,
-      subpartCode: `${modNum}.${subpartCount}`,
-      title,
-      description,
-      deadline,
-      allowedFormats,
-      maxPoints,
-      guidelines: guidelines.length > 0 ? guidelines : ['Ensure submission meets evaluation rubrics.'],
+      id: tempId,
+      moduleId: params.moduleId,
+      subpartCode: `${modNumber}.${currentCount}`,
+      title: params.title.trim(),
+      description: params.description.trim(),
+      deadline: params.deadline.trim(),
+      allowedFormats: params.allowedFormats,
+      maxPoints: params.maxPoints || 100,
+      guidelines: params.guidelines || [],
     };
 
     setModules((prev) =>
-      prev.map((mod) => {
-        if (mod.id === moduleId) {
-          return {
-            ...mod,
-            subparts: [...mod.subparts, newSubpart],
-          };
-        }
-        return mod;
+      prev.map((m) => {
+        if (m.id !== params.moduleId) return m;
+        return {
+          ...m,
+          subparts: [...m.subparts, newSubpart],
+        };
       })
     );
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data: dbSub } = await supabase
+          .from('ProjectSubpart')
+          .insert({
+            moduleId: params.moduleId,
+            subpartCode: newSubpart.subpartCode,
+            title: params.title.trim(),
+            description: params.description.trim(),
+            deadline: params.deadline.trim(),
+            allowedFormats: params.allowedFormats,
+            maxPoints: params.maxPoints || 100,
+            guidelines: params.guidelines || [],
+            order: currentCount,
+          })
+          .select()
+          .single();
+
+        if (dbSub) {
+          const persisted: ProjectSubpart = {
+            ...newSubpart,
+            id: dbSub.id,
+          };
+          setModules((prev) =>
+            prev.map((m) => {
+              if (m.id !== params.moduleId) return m;
+              return {
+                ...m,
+                subparts: m.subparts.map((sp) => (sp.id === tempId ? persisted : sp)),
+              };
+            })
+          );
+          return persisted;
+        }
+      } catch (err) {
+        console.error('Error inserting ProjectSubpart to DB:', err);
+      }
+    }
 
     return newSubpart;
   };
 
-  // Admin Update Deadline
-  const adminUpdateDeadline = (subpartId: string, newDeadline: string) => {
+  const adminUpdateDeadline = async (subpartId: string, newDeadline: string) => {
     setModules((prev) =>
-      prev.map((mod) => ({
-        ...mod,
-        subparts: mod.subparts.map((sub) =>
-          sub.id === subpartId ? { ...sub, deadline: newDeadline } : sub
-        ),
+      prev.map((m) => ({
+        ...m,
+        subparts: m.subparts.map((sp) => (sp.id === subpartId ? { ...sp, deadline: newDeadline } : sp)),
       }))
     );
+
+    if (isSupabaseConfigured) {
+      try {
+        await supabase
+          .from('ProjectSubpart')
+          .update({ deadline: newDeadline })
+          .eq('id', subpartId);
+      } catch (err) {
+        console.error('Error updating deadline in DB:', err);
+      }
+    }
   };
 
-  // Admin Delete Subpart
-  const adminDeleteSubpart = (subpartId: string) => {
+  const adminDeleteSubpart = async (subpartId: string) => {
     setModules((prev) =>
-      prev.map((mod) => ({
-        ...mod,
-        subparts: mod.subparts.filter((sub) => sub.id !== subpartId),
-      }))
-    );
-    setSubmissions((prev) => prev.filter((s) => s.subpartId !== subpartId));
-  };
-
-  // Admin Give Remark & Grade
-  const adminGiveRemark = ({
-    submissionId,
-    remarks,
-    status,
-    score,
-    evaluatorName = 'Admin Faculty',
-  }: AdminGiveRemarkParams) => {
-    const now = new Date();
-    const evaluatedAt = `${now.toLocaleDateString('en-US', {
-      month: 'short',
-      day: '2-digit',
-      year: 'numeric',
-    })} • ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
-
-    setSubmissions((prev) =>
-      prev.map((subm) => {
-        if (subm.id === submissionId) {
-          return {
-            ...subm,
-            adminRemarks: remarks,
-            status,
-            score: score !== undefined ? score : subm.score,
-            adminEvaluatedAt: evaluatedAt,
-            adminEvaluatorName: evaluatorName,
-          };
-        }
-        return subm;
+      prev.map((m) => {
+        const has = m.subparts.some((sp) => sp.id === subpartId);
+        if (!has) return m;
+        const filtered = m.subparts.filter((sp) => sp.id !== subpartId);
+        return {
+          ...m,
+          subparts: filtered.map((sp, idx) => ({
+            ...sp,
+            subpartCode: `${m.moduleNumber}.${idx + 1}`,
+          })),
+        };
       })
     );
+
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('ProjectSubpart').delete().eq('id', subpartId);
+      } catch (err) {
+        console.error('Error deleting ProjectSubpart from DB:', err);
+      }
+    }
   };
 
-  // Helper Queries
+  const adminGiveRemark = async (params: AdminGiveRemarkParams) => {
+    setSubmissions((prev) =>
+      prev.map((s) => {
+        if (s.id !== params.submissionId) return s;
+        return {
+          ...s,
+          status: params.status,
+          adminRemarks: params.remarks,
+          score: params.score !== undefined ? params.score : s.score,
+          adminEvaluatorName: params.evaluatorName || 'Lead Course Evaluator',
+          adminEvaluatedAt: 'Just now',
+        };
+      })
+    );
+
+    if (isSupabaseConfigured) {
+      try {
+        await supabase
+          .from('ProjectSubmission')
+          .update({
+            status: params.status,
+            evaluatorRemarks: params.remarks,
+            score: params.score,
+            evaluatorName: params.evaluatorName || 'Lead Course Evaluator',
+            evaluatedAt: new Date().toISOString(),
+          })
+          .eq('id', params.submissionId);
+      } catch (err) {
+        console.error('Error updating submission remark in DB:', err);
+      }
+    }
+  };
+
   const getSubmissionsByStudent = (studentEmail: string) => {
     return submissions.filter(
       (s) => s.studentEmail.toLowerCase() === studentEmail.toLowerCase()
@@ -344,8 +569,8 @@ export const ProjectSubmissionsProvider: React.FC<{ children: React.ReactNode }>
   const getStudentSubpartSubmission = (studentEmail: string, subpartId: string) => {
     return submissions.find(
       (s) =>
-        s.subpartId === subpartId &&
-        s.studentEmail.toLowerCase() === studentEmail.toLowerCase()
+        s.studentEmail.toLowerCase() === studentEmail.toLowerCase() &&
+        s.subpartId === subpartId
     );
   };
 
@@ -359,6 +584,7 @@ export const ProjectSubmissionsProvider: React.FC<{ children: React.ReactNode }>
         modules,
         submissions,
         stats,
+        isLoading,
         submitProject,
         adminAddModule,
         adminAddSubpart,
@@ -369,6 +595,7 @@ export const ProjectSubmissionsProvider: React.FC<{ children: React.ReactNode }>
         getSubmissionsBySubpart,
         getStudentSubpartSubmission,
         getModuleById,
+        refreshSubmissions: fetchProjectsFromDb,
       }}
     >
       {children}
@@ -376,12 +603,10 @@ export const ProjectSubmissionsProvider: React.FC<{ children: React.ReactNode }>
   );
 };
 
-export const useProjectSubmissions = (): ProjectSubmissionsContextType => {
+export const useProjectSubmissions = () => {
   const context = useContext(ProjectSubmissionsContext);
   if (!context) {
-    throw new Error(
-      'useProjectSubmissions must be used within a ProjectSubmissionsProvider'
-    );
+    throw new Error('useProjectSubmissions must be used within a ProjectSubmissionsProvider');
   }
   return context;
 };

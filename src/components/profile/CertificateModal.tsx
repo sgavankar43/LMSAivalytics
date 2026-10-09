@@ -29,7 +29,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
 }) => {
   if (!isOpen || !certificate) return null;
 
-  const recipientName = user?.name || 'Alex Morgan';
+  const recipientName = user?.name || 'Learner';
   const credentialId = certificate.credentialId;
   const issueDate = certificate.issueDate || 'July 15, 2026';
 

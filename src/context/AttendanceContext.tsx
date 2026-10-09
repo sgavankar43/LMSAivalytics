@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   SessionItem,
   SessionStatus,
@@ -10,14 +10,9 @@ import {
   AttendanceStatus,
   StudentAttendanceStats,
 } from '@/types';
-import { mockRecentSessions } from '@/data/mockData';
-import {
-  enrolledCohortStudents,
-  initialSessionAttendances,
-  calculateAttendanceMetrics,
-} from '@/data/attendanceMockData';
+import { calculateAttendanceMetrics } from '@/data/attendanceMockData';
 import { useNotifications } from '@/context/NotificationContext';
-import { supabase } from '@/lib/supabase/client';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
 import { parseDbTimestamp } from '@/lib/dateUtils';
 
 interface CreateLectureParams {
@@ -35,13 +30,14 @@ interface AttendanceContextType {
   sessions: SessionItem[];
   activeLiveSession: SessionItem | null;
   attendances: Record<string, SessionAttendance>;
-  addSession: (sessionData: Omit<SessionItem, 'id'>) => SessionItem;
+  isLoading: boolean;
+  addSession: (sessionData: Omit<SessionItem, 'id'>) => Promise<SessionItem>;
   createLecture: (lectureData: CreateLectureParams) => Promise<SessionItem>;
   updateSessionAttendance: (
     sessionId: string,
     records: Record<string, StudentAttendanceRecord>
-  ) => void;
-  markAllSessionStatus: (sessionId: string, status: AttendanceStatus) => void;
+  ) => Promise<void>;
+  markAllSessionStatus: (sessionId: string, status: AttendanceStatus) => Promise<void>;
   getStudentAttendance: (studentEmail: string) => StudentAttendanceStats;
   getSessionAttendance: (sessionId: string) => SessionAttendance;
   overallInstitutionAttendance: number;
@@ -50,8 +46,8 @@ interface AttendanceContextType {
 
 const AttendanceContext = createContext<AttendanceContextType | undefined>(undefined);
 
-const SESSIONS_STORAGE_KEY = 'aivalytics_sessions_v2';
-const ATTENDANCE_STORAGE_KEY = 'aivalytics_attendance_v2';
+const SESSIONS_STORAGE_KEY = 'aivalytics_sessions_v3';
+const ATTENDANCE_STORAGE_KEY = 'aivalytics_attendance_v3';
 
 // Format helper
 function formatTimeRange(start: Date, durationMinutes: number): string {
@@ -106,29 +102,22 @@ function mapDbToSession(row: any): SessionItem {
 
 export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { sendNotification } = useNotifications();
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // 1. Initial State from localStorage (guarantees NO loss on page refresh)
+  // 1. Initial State from localStorage cache for immediate paint
   const [sessions, setSessions] = useState<SessionItem[]>(() => {
     if (typeof window !== 'undefined') {
       try {
         const savedSessions = localStorage.getItem(SESSIONS_STORAGE_KEY);
         if (savedSessions) {
           const parsed = JSON.parse(savedSessions);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            // Sanitize legacy sess_3 or expired sessions from localStorage cache
-            return parsed.map((s) => {
-              if (s.id === 'sess_3' && s.status === 'In Progress') {
-                return { ...s, status: 'Closed' as SessionStatus };
-              }
-              return s;
-            });
-          }
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         }
       } catch (err) {
         console.error('Failed to load sessions from localStorage', err);
       }
     }
-    return mockRecentSessions;
+    return [];
   });
 
   const [attendances, setAttendances] = useState<Record<string, SessionAttendance>>(() => {
@@ -142,8 +131,13 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         console.error('Failed to load attendance from localStorage', err);
       }
     }
-    return initialSessionAttendances;
+    return {};
   });
+
+  // Cached learners list for session initialization
+  const [dbLearners, setDbLearners] = useState<Array<{ id: string; fullName: string; email: string }>>([]);
+  const dbLearnersRef = useRef(dbLearners);
+  dbLearnersRef.current = dbLearners;
 
   // Save to localStorage on change
   useEffect(() => {
@@ -157,66 +151,185 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, [sessions, attendances]);
 
-  // 2. Fetch from Supabase Postgres
+  // 2. Fetch Sessions and Attendance Records from Supabase Postgres
   const fetchSessionsFromDb = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const { data, error } = await supabase
+      setIsLoading(true);
+
+      // Fetch active learners
+      const { data: learners } = await supabase
+        .from('User')
+        .select('id, fullName, email')
+        .eq('role', 'LEARNER');
+
+      if (learners) {
+        setDbLearners(learners);
+      }
+
+      // Fetch Sessions
+      const { data: sessionsData, error: sessError } = await supabase
         .from('ClassSession')
         .select('*')
         .order('createdAt', { ascending: false });
 
-      if (error) {
-        console.warn('Supabase ClassSession fetch notice:', error.message);
+      if (sessError) {
+        console.warn('Supabase ClassSession fetch notice:', sessError.message);
         return;
       }
 
-      if (data && data.length > 0) {
-        const dbSessions = data.map(mapDbToSession);
-        setSessions((prev) => {
-          // Merge DB sessions with existing sessions, avoiding duplicates
-          const nonDb = prev.filter((local) => !dbSessions.some((db) => db.id === local.id));
-          return [...dbSessions, ...nonDb];
-        });
+      if (sessionsData && sessionsData.length > 0) {
+        const dbSessions = sessionsData.map(mapDbToSession);
+        setSessions(dbSessions);
+
+        // Fetch Attendance Records
+        const { data: recordsData, error: recError } = await supabase
+          .from('AttendanceRecord')
+          .select(`
+            id,
+            sessionId,
+            userId,
+            status,
+            attendedAt,
+            user:User (
+              id,
+              fullName,
+              email
+            )
+          `);
+
+        if (!recError && recordsData) {
+          // Group records by sessionId
+          const grouped: Record<string, SessionAttendance> = {};
+
+          dbSessions.forEach((sess) => {
+            const sessRecords: Record<string, StudentAttendanceRecord> = {};
+
+            // Find all DB attendance records for this session
+            const matching = recordsData.filter((r: any) => r.sessionId === sess.id);
+
+            matching.forEach((r: any) => {
+              const u = r.user;
+              if (u && u.email) {
+                sessRecords[u.email.toLowerCase()] = {
+                  studentId: u.id,
+                  studentName: u.fullName || 'Student',
+                  studentEmail: u.email,
+                  status: (r.status as AttendanceStatus) || 'PRESENT',
+                  markedAt: r.attendedAt ? new Date(r.attendedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'Saved',
+                };
+              }
+            });
+
+            // If some learners don't have records yet for an upcoming/active session, add them as PRESENT
+            if (matching.length === 0 && learners && learners.length > 0) {
+              learners.forEach((l) => {
+                sessRecords[l.email.toLowerCase()] = {
+                  studentId: l.id,
+                  studentName: l.fullName,
+                  studentEmail: l.email,
+                  status: 'PRESENT',
+                  markedAt: 'Pending confirmation',
+                };
+              });
+            }
+
+            const metrics = calculateAttendanceMetrics(sessRecords);
+
+            grouped[sess.id] = {
+              sessionId: sess.id,
+              sessionTitle: sess.title,
+              course: sess.course,
+              date: sess.date || 'Today',
+              time: sess.time || '10:00 AM',
+              lastUpdated: 'Live Database',
+              ...metrics,
+              records: sessRecords,
+            };
+          });
+
+          setAttendances(grouped);
+        }
       }
     } catch (err) {
-      console.error('Failed to load ClassSession from DB:', err);
+      console.error('Failed to load ClassSession & Attendance from DB:', err);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  // 3. Supabase Realtime Subscription
+  // 3. Supabase Realtime Subscriptions for sessions and attendance records
   useEffect(() => {
     fetchSessionsFromDb();
 
-    const channel = supabase
+    if (!isSupabaseConfigured) return;
+
+    const sessionChannel = supabase
       .channel('realtime:class_sessions')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'ClassSession' },
-        (payload) => {
-          const inserted = mapDbToSession(payload.new);
-          setSessions((prev) => {
-            if (prev.some((s) => s.id === inserted.id)) return prev;
-            return [inserted, ...prev];
-          });
+        { event: '*', schema: 'public', table: 'ClassSession' },
+        () => {
+          fetchSessionsFromDb();
         }
       )
+      .subscribe();
+
+    const attendanceChannel = supabase
+      .channel('realtime:attendance_records')
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'ClassSession' },
+        { event: '*', schema: 'public', table: 'AttendanceRecord' },
         (payload) => {
-          const updated = mapDbToSession(payload.new);
-          setSessions((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+          const rec = payload.new as any;
+          if (rec && rec.sessionId && rec.userId) {
+            setAttendances((prev) => {
+              const currentSess = prev[rec.sessionId];
+              if (!currentSess) return prev;
+
+              // Find matching learner using live ref to avoid stale closures
+              const learner = dbLearnersRef.current.find((l) => l.id === rec.userId);
+              const emailKey = learner?.email?.toLowerCase();
+              if (!emailKey) return prev;
+
+              const updatedRecords = {
+                ...currentSess.records,
+                [emailKey]: {
+                  ...currentSess.records[emailKey],
+                  studentId: rec.userId,
+                  status: rec.status as AttendanceStatus,
+                  markedAt: 'Just now',
+                },
+              };
+
+              const metrics = calculateAttendanceMetrics(updatedRecords);
+
+              return {
+                ...prev,
+                [rec.sessionId]: {
+                  ...currentSess,
+                  ...metrics,
+                  records: updatedRecords,
+                  lastUpdated: 'Just now',
+                },
+              };
+            });
+          }
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(sessionChannel);
+      supabase.removeChannel(attendanceChannel);
     };
-  }, [fetchSessionsFromDb]);
+  }, [fetchSessionsFromDb, dbLearners]);
 
   // 4. Dynamic Expiration & Status Transition Engine
-  // Checks every 5 seconds if any session duration has expired
   useEffect(() => {
     const checkExpirations = () => {
       const now = Date.now();
@@ -229,7 +342,6 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           const expTime = parseDbTimestamp(session.expiresAt);
           const startTimeNum = session.startTime ? parseDbTimestamp(session.startTime) : null;
 
-          // Transition to Closed if expired
           if (now >= expTime && session.status === 'In Progress') {
             hasChanges = true;
             return {
@@ -238,7 +350,6 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             };
           }
 
-          // Transition to In Progress if start time reached
           if (
             startTimeNum !== null &&
             now >= startTimeNum - 60000 &&
@@ -267,11 +378,12 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const initAttendanceForSession = useCallback(
     (sessionId: string, sessionTitle: string, course: string, date: string, time: string) => {
       const initialRecords: Record<string, StudentAttendanceRecord> = {};
-      enrolledCohortStudents.forEach((student) => {
-        initialRecords[student.studentEmail] = {
-          studentId: student.studentId,
-          studentName: student.studentName,
-          studentEmail: student.studentEmail,
+      
+      dbLearners.forEach((student) => {
+        initialRecords[student.email.toLowerCase()] = {
+          studentId: student.id,
+          studentName: student.fullName,
+          studentEmail: student.email,
           status: 'PRESENT',
           markedAt: 'Just now',
         };
@@ -295,14 +407,14 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         [sessionId]: newAttendance,
       }));
     },
-    []
+    [dbLearners]
   );
 
-  // 5. Create Lecture (Admin Pipeline with Meet Link, Broadcast Notification & Expiration)
+  // 5. Create Lecture (Admin Pipeline)
   const createLecture = useCallback(
     async (params: CreateLectureParams): Promise<SessionItem> => {
       const durationMin = params.durationMinutes || 60;
-      const isLive = params.isLiveNow !== false; // defaults to live now
+      const isLive = params.isLiveNow !== false;
       const startTime = isLive
         ? Date.now()
         : params.scheduledDate
@@ -334,13 +446,11 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         meetingUrl,
       };
 
-      // 1. Add optimistically to local sessions state
+      // 1. Add optimistically
       setSessions((prev) => [newSession, ...prev]);
-
-      // 2. Initialize attendance records
       initAttendanceForSession(tempId, newSession.title, newSession.course, dateStr, timeStr);
 
-      // 3. Broadcast real-time notification to all students
+      // 2. Broadcast notification
       sendNotification({
         title: isLive ? `🔴 Live Lecture Started: ${newSession.title}` : `📅 New Lecture Scheduled: ${newSession.title}`,
         message: `${instructor} has ${
@@ -352,38 +462,36 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         actionUrl: meetingUrl,
       });
 
-      // 4. Persist to Supabase Postgres ClassSession table
-      try {
-        const { data: dbRow, error } = await supabase
-          .from('ClassSession')
-          .insert([
-            {
-              title: newSession.title,
-              course: newSession.course,
-              instructor,
-              meetingUrl,
-              type: 'LIVE',
-              status: isLive ? 'In Progress' : 'Upcoming',
-              durationMinutes: durationMin,
-              startTime: new Date(startTime).toISOString(),
-              expiresAt: new Date(expiresAt).toISOString(),
-            },
-          ])
-          .select()
-          .single();
+      // 3. Persist to DB
+      if (isSupabaseConfigured) {
+        try {
+          const { data: dbRow, error } = await supabase
+            .from('ClassSession')
+            .insert([
+              {
+                title: newSession.title,
+                course: newSession.course,
+                instructor,
+                meetingUrl,
+                type: 'LIVE',
+                status: isLive ? 'In Progress' : 'Upcoming',
+                durationMinutes: durationMin,
+                startTime: new Date(startTime).toISOString(),
+                expiresAt: new Date(expiresAt).toISOString(),
+              },
+            ])
+            .select()
+            .single();
 
-        if (error) {
-          console.error('Supabase ClassSession insert error:', error.message);
-        } else if (dbRow) {
-          const persistedSession = mapDbToSession(dbRow);
-          setSessions((prev) =>
-            prev.map((s) => (s.id === tempId ? persistedSession : s))
-          );
-          initAttendanceForSession(persistedSession.id, persistedSession.title, persistedSession.course, dateStr, timeStr);
-          return persistedSession;
+          if (!error && dbRow) {
+            const persisted = mapDbToSession(dbRow);
+            setSessions((prev) => prev.map((s) => (s.id === tempId ? persisted : s)));
+            initAttendanceForSession(persisted.id, persisted.title, persisted.course, dateStr, timeStr);
+            return persisted;
+          }
+        } catch (err) {
+          console.error('Failed to persist lecture to Supabase:', err);
         }
-      } catch (err) {
-        console.error('Failed to persist lecture to PostgreSQL:', err);
       }
 
       return newSession;
@@ -393,49 +501,23 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // Backward-compatible addSession
   const addSession = useCallback(
-    (sessionData: Omit<SessionItem, 'id'>): SessionItem => {
-      const newId = `sess_${Date.now()}`;
-      const durationMin = sessionData.durationMinutes || 60;
-      const startTime = Date.now();
-      const expiresAt = startTime + durationMin * 60000;
-
-      const newSession: SessionItem = {
-        ...sessionData,
-        id: newId,
-        meetingUrl: sessionData.meetingUrl || 'https://meet.google.com/jye-igap-skb',
-        durationMinutes: durationMin,
-        startTime,
-        expiresAt,
-      };
-
-      initAttendanceForSession(
-        newId,
-        newSession.title,
-        newSession.course,
-        newSession.date || 'Today',
-        newSession.time || '10:00 AM'
-      );
-
-      setSessions((prev) => [newSession, ...prev]);
-
-      // Broadcast notification
-      sendNotification({
-        title: `🔴 Live Lecture: ${newSession.title}`,
-        message: `${newSession.instructor || 'Faculty'} scheduled lecture for ${newSession.course}. Meet link: ${newSession.meetingUrl}`,
-        priority: newSession.status === 'In Progress' ? 'Urgent' : 'Important',
-        type: 'session',
-        targetType: 'all',
-        actionUrl: newSession.meetingUrl,
+    async (sessionData: Omit<SessionItem, 'id'>): Promise<SessionItem> => {
+      const created = await createLecture({
+        title: sessionData.title,
+        course: sessionData.course,
+        meetingUrl: sessionData.meetingUrl,
+        durationMinutes: sessionData.durationMinutes || 60,
+        instructor: sessionData.instructor,
+        isLiveNow: sessionData.status === 'In Progress',
       });
-
-      return newSession;
+      return created;
     },
-    [initAttendanceForSession, sendNotification]
+    [createLecture]
   );
 
-  // Update attendance for a specific session
+  // 6. Update Session Attendance with Database Persistence
   const updateSessionAttendance = useCallback(
-    (sessionId: string, records: Record<string, StudentAttendanceRecord>) => {
+    async (sessionId: string, records: Record<string, StudentAttendanceRecord>) => {
       const session = sessions.find((s) => s.id === sessionId);
       const metrics = calculateAttendanceMetrics(records);
 
@@ -457,17 +539,47 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         records,
       };
 
+      // 1. Optimistic update in state immediately
       setAttendances((prev) => ({
         ...prev,
         [sessionId]: updated,
       }));
+
+      // 2. Persist to Supabase AttendanceRecord table
+      if (isSupabaseConfigured) {
+        try {
+          const recordsToUpsert = Object.values(records).map((rec) => {
+            const uid =
+              rec.studentId ||
+              dbLearnersRef.current.find(
+                (l) => l.email.toLowerCase() === rec.studentEmail.toLowerCase()
+              )?.id;
+            return {
+              userId: uid,
+              sessionId,
+              status: rec.status,
+              attendedAt: new Date().toISOString(),
+            };
+          });
+
+          for (const item of recordsToUpsert) {
+            if (item.userId) {
+              await supabase
+                .from('AttendanceRecord')
+                .upsert(item, { onConflict: 'userId,sessionId' });
+            }
+          }
+        } catch (err) {
+          console.error('Error persisting attendance records to Supabase:', err);
+        }
+      }
     },
     [sessions]
   );
 
   // Mark all students in session with a specific status
   const markAllSessionStatus = useCallback(
-    (sessionId: string, status: AttendanceStatus) => {
+    async (sessionId: string, status: AttendanceStatus) => {
       const currentAttendance = attendances[sessionId];
       if (!currentAttendance) return;
 
@@ -480,7 +592,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         };
       });
 
-      updateSessionAttendance(sessionId, updatedRecords);
+      await updateSessionAttendance(sessionId, updatedRecords);
     },
     [attendances, updateSessionAttendance]
   );
@@ -494,11 +606,12 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       const session = sessions.find((s) => s.id === sessionId);
       const initialRecords: Record<string, StudentAttendanceRecord> = {};
-      enrolledCohortStudents.forEach((student) => {
-        initialRecords[student.studentEmail] = {
-          studentId: student.studentId,
-          studentName: student.studentName,
-          studentEmail: student.studentEmail,
+      
+      dbLearners.forEach((student) => {
+        initialRecords[student.email.toLowerCase()] = {
+          studentId: student.id,
+          studentName: student.fullName,
+          studentEmail: student.email,
           status: 'PRESENT',
         };
       });
@@ -511,11 +624,12 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         course: session?.course || 'General',
         date: session?.date || 'Scheduled',
         time: session?.time || '10:00 AM',
+        lastUpdated: 'Recent',
         ...metrics,
         records: initialRecords,
       };
     },
-    [attendances, sessions]
+    [attendances, sessions, dbLearners]
   );
 
   // Get student attendance metrics for the student dashboard
@@ -571,7 +685,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     [sessions, attendances]
   );
 
-  // Current active live session (prioritize the most recently launched active lecture)
+  // Current active live session
   const activeLiveSession = useMemo(() => {
     const liveSessions = sessions.filter((s) => s.status === 'In Progress');
     if (liveSessions.length === 0) return null;
@@ -590,7 +704,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           markedSessions.reduce((acc, curr) => acc + curr.attendanceRate, 0) /
             markedSessions.length
         )
-      : 84;
+      : 88;
 
   return (
     <AttendanceContext.Provider
@@ -598,6 +712,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         sessions,
         activeLiveSession,
         attendances,
+        isLoading,
         addSession,
         createLecture,
         updateSessionAttendance,

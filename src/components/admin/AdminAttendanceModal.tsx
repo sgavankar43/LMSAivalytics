@@ -35,6 +35,7 @@ export const AdminAttendanceModal: React.FC<AdminAttendanceModalProps> = ({
   // Local state of records while editing inside modal
   const [localRecords, setLocalRecords] = useState<Record<string, StudentAttendanceRecord>>({});
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (session) {
@@ -78,15 +79,22 @@ export const AdminAttendanceModal: React.FC<AdminAttendanceModalProps> = ({
     setLocalRecords(updated);
   };
 
-  const handleSave = () => {
-    updateSessionAttendance(session.id, localRecords);
-    setSavedSuccess(true);
-    if (onSuccess) {
-      onSuccess(`Attendance saved for ${session.title}! (${attendanceRate}% attendance)`);
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      await updateSessionAttendance(session.id, localRecords);
+      setSavedSuccess(true);
+      if (onSuccess) {
+        onSuccess(`Attendance saved for ${session.title}! (${attendanceRate}% attendance)`);
+      }
+      setTimeout(() => {
+        onClose();
+      }, 700);
+    } catch (err) {
+      console.error('Error saving attendance:', err);
+    } finally {
+      setIsSaving(false);
     }
-    setTimeout(() => {
-      onClose();
-    }, 900);
   };
 
   return (
@@ -297,10 +305,13 @@ export const AdminAttendanceModal: React.FC<AdminAttendanceModalProps> = ({
             <button
               type="button"
               onClick={handleSave}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold text-[#111614] bg-[#3ECE92] hover:bg-[#34b780] shadow-sm transition-all active:scale-95 cursor-pointer"
+              disabled={isSaving}
+              className={`inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold text-[#111614] bg-[#3ECE92] hover:bg-[#34b780] shadow-sm transition-all active:scale-95 cursor-pointer ${
+                isSaving ? 'opacity-60 cursor-not-allowed' : ''
+              }`}
             >
-              <Save className="w-4 h-4" />
-              <span>Save Attendance</span>
+              <Save className={`w-4 h-4 ${isSaving ? 'animate-spin' : ''}`} />
+              <span>{isSaving ? 'Saving to Database...' : 'Save Attendance'}</span>
             </button>
           </div>
         </div>

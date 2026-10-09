@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
 import { useAuth } from '@/context/AuthContext';
 import { useAttendance } from '@/context/AttendanceContext';
-import { mockCourses, mockCertificates } from '@/data/mockData';
+import { useCourses } from '@/context/CourseContext';
+import { useEnrollment } from '@/context/EnrollmentContext';
+import { mockCertificates } from '@/data/mockData';
 import { CertificateItem } from '@/types';
 import { CertificateModal } from '@/components/profile/CertificateModal';
 import { EditProfileModal } from '@/components/profile/EditProfileModal';
@@ -32,6 +34,8 @@ import {
 export default function ProfilePage() {
   const { user } = useAuth();
   const { getStudentAttendance } = useAttendance();
+  const { courses, courseProgress, totalLessons, completedLessonsCount, modules } = useCourses();
+  const { students } = useEnrollment();
   const router = useRouter();
 
   const isAdmin = user?.role === 'admin';
@@ -45,7 +49,7 @@ export default function ProfilePage() {
   // Filters
   const [certStatusFilter, setCertStatusFilter] = useState<'All' | 'Issued' | 'Pending'>('All');
 
-  const studentEmail = user?.email || 'alex.morgan@aivalytics.com';
+  const studentEmail = user?.email || '';
   const attendanceStats = getStudentAttendance(studentEmail);
 
   const showToast = (msg: string) => {
@@ -74,7 +78,7 @@ export default function ProfilePage() {
   });
 
   // Overall completed courses
-  const totalCourses = mockCourses.length;
+  const totalCourses = courses.length;
   const issuedCertsCount = mockCertificates.filter((c) => c.status === 'Issued').length;
   const inProgressCertsCount = mockCertificates.filter((c) => c.status === 'Pending').length;
 
@@ -273,7 +277,7 @@ export default function ProfilePage() {
                     Institutional Capacity
                   </span>
                   <div className="mt-1 flex items-baseline gap-1.5">
-                    <span className="text-xl font-extrabold text-gray-900">148 Enrolled</span>
+                    <span className="text-xl font-extrabold text-gray-900">{students.length} Enrolled</span>
                     <span className="text-[10px] text-gray-400">Learners</span>
                   </div>
                 </div>
@@ -337,7 +341,7 @@ export default function ProfilePage() {
                   Enrolled Program & Syllabus
                 </h2>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
-                  {mockCourses.length} Program
+                  {courses.length} Program
                 </span>
               </div>
               <p className="text-xs text-gray-400">
@@ -348,7 +352,13 @@ export default function ProfilePage() {
 
           {/* Courses Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {mockCourses.map((course) => {
+            {courses.map((course) => {
+              const displayProgress = courses.length === 1 ? courseProgress : (course.progress ?? 0);
+              const displayCompletedLessons = courses.length === 1 ? completedLessonsCount : (course.completedLessons ?? 0);
+              const displayTotalLessons = courses.length === 1 ? totalLessons : (course.totalLessons ?? 0);
+              const displayCompletedModules = modules.filter((m) => m.submodules.length > 0 && m.submodules.every((s) => s.isCompleted)).length;
+              const displayTotalModules = modules.length || course.totalModules || 3;
+
               return (
                 <div
                   key={course.id}
@@ -373,11 +383,11 @@ export default function ProfilePage() {
                     {/* Instructor Info */}
                     <div className="flex items-center gap-2 pt-1 text-xs text-gray-600">
                       <div className="w-6 h-6 rounded-full bg-gray-200 text-gray-700 font-bold text-[10px] flex items-center justify-center">
-                        {course.instructor.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+                        {(course.instructor || 'AF').split(' ').map((n) => n[0]).join('').slice(0, 2)}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold truncate">{course.instructor}</p>
-                        <p className="text-[10px] text-gray-400 truncate">{course.instructorRole}</p>
+                        <p className="font-semibold truncate">{course.instructor || 'Admin Faculty'}</p>
+                        <p className="text-[10px] text-gray-400 truncate">{course.instructorRole || 'Curriculum Lead'}</p>
                       </div>
                     </div>
 
@@ -385,17 +395,17 @@ export default function ProfilePage() {
                     <div className="pt-2">
                       <div className="flex items-center justify-between text-xs mb-1.5">
                         <span className="font-medium text-gray-500">Curriculum Progress</span>
-                        <span className="font-bold text-gray-900">{course.progress}%</span>
+                        <span className="font-bold text-gray-900">{displayProgress}%</span>
                       </div>
                       <div className="w-full bg-gray-200/80 rounded-full h-2 overflow-hidden">
                         <div
                           className="bg-[#3ECE92] h-full rounded-full transition-all duration-500"
-                          style={{ width: `${course.progress}%` }}
+                          style={{ width: `${displayProgress}%` }}
                         />
                       </div>
                       <div className="flex items-center justify-between text-[10px] text-gray-400 mt-1 font-mono">
-                        <span>{course.completedModules} / {course.totalModules} modules</span>
-                        <span>{course.completedLessons} / {course.totalLessons} lessons</span>
+                        <span>{displayCompletedModules} / {displayTotalModules} modules</span>
+                        <span>{displayCompletedLessons} / {displayTotalLessons} lessons</span>
                       </div>
                     </div>
 
@@ -415,7 +425,7 @@ export default function ProfilePage() {
 
                   {/* Card Bottom CTA */}
                   <div className="pt-4 mt-4 border-t border-gray-200/60 flex items-center justify-between">
-                    <span className="text-[10px] font-mono text-gray-400">{course.totalHours}</span>
+                    <span className="text-[10px] font-mono text-gray-400">{course.totalHours || '16h 40m'}</span>
                     <Link
                       href="/courses"
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-[#059669] hover:text-[#047857] transition-colors"

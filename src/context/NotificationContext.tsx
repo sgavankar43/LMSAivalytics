@@ -1,10 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { BroadcastNotification } from '@/types';
-import { initialBroadcasts } from '@/data/adminMockData';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase/client';
+import { formatTimeAgo } from '@/lib/dateUtils';
 
 export interface LMSNotification {
   id: string;
@@ -52,18 +52,6 @@ const READ_NOTIFICATIONS_KEY = 'aivalytics_read_notifications_v1';
 const DISMISSED_NOTIFICATIONS_KEY = 'aivalytics_dismissed_notifications_v1';
 const CHANNEL_NAME = 'realtime:notifications';
 
-// Helper for human-readable relative time
-function formatTimeAgo(date: Date): string {
-  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (isNaN(seconds) || seconds < 30) return 'Just now';
-  if (seconds < 60) return `${seconds}s ago`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
 
 // Map Postgres row to LMSNotification
 function mapDbRowToNotif(row: any, readIds: Record<string, boolean>): LMSNotification {
@@ -127,7 +115,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         console.error('Failed to load broadcasts from localStorage', err);
       }
     }
-    return initialBroadcasts;
+    return [];
   });
 
   // DB-synced notifications
@@ -195,6 +183,17 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [dismissedIds]);
 
+  // Keep live references to avoid stale closures in realtime listeners
+  const readIdsRef = useRef(readIds);
+  useEffect(() => {
+    readIdsRef.current = readIds;
+  }, [readIds]);
+
+  const userRef = useRef(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
   // Supabase Realtime & Postgres Synchronization Engine
   useEffect(() => {
     // 1. Fetch initial notifications from Supabase Postgres
@@ -212,43 +211,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
 
         if (data && data.length > 0) {
-          setDbNotifications(data.map((row) => mapDbRowToNotif(row, readIds)));
+          setDbNotifications(data.map((row) => mapDbRowToNotif(row, readIdsRef.current)));
         } else {
-          // If table is fresh, seed default broadcast rows into Postgres
-          const initialRows = [
-            {
-              title: 'Campus Maintenance & Quiz Deadline Extended',
-              message: 'All LMS quizzes for Module 3 have been extended by 48 hours due to scheduled server upgrades.',
-              type: 'alert',
-              userId: null,
-            },
-            {
-              title: 'Live Lab Active Now: AI Agents & Orchestration',
-              message: 'Live Lab: Multi-Agent Topology & n8n Orchestration Architecture is currently active.',
-              type: 'alert',
-              userId: null,
-            },
-            {
-              title: 'Support Ticket Updated',
-              message: 'Faculty responded to ticket on AI Agent Starter Repository access.',
-              type: 'info',
-              userId: null,
-            },
-            {
-              title: 'Certificate Ready to Download',
-              message: 'AI Foundations Certified certificate is verified & available to download.',
-              type: 'success',
-              userId: null,
-            },
-          ];
-          await supabase.from('Notification').insert(initialRows);
-          const { data: seeded } = await supabase
-            .from('Notification')
-            .select('*')
-            .order('createdAt', { ascending: false });
-          if (seeded) {
-            setDbNotifications(seeded.map((row) => mapDbRowToNotif(row, readIds)));
-          }
+          setDbNotifications([]);
         }
       } catch (err) {
         console.error('Error fetching initial notifications:', err);
@@ -265,7 +230,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         { event: 'INSERT', schema: 'public', table: 'Notification' },
         (payload) => {
           const row = payload.new;
-          const newNotif = mapDbRowToNotif(row, readIds);
+          const newNotif = mapDbRowToNotif(row, readIdsRef.current);
 
           setDbNotifications((prev) => {
             if (prev.some((n) => n.id === newNotif.id)) return prev;
@@ -273,7 +238,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           });
 
           // Check targeting
-          const currentUserEmail = user?.email?.toLowerCase();
+          const currentUserEmail = userRef.current?.email?.toLowerCase();
           const isTargeted =
             newNotif.targetType === 'all' ||
             (newNotif.targetType === 'individual' && newNotif.targetValue?.toLowerCase() === currentUserEmail);

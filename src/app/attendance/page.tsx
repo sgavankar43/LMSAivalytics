@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useAttendance } from '@/context/AttendanceContext';
 import { AdminAttendanceModal } from '@/components/admin/AdminAttendanceModal';
 import { SessionItem, AttendanceStatus } from '@/types';
-import { enrolledCohortStudents } from '@/data/attendanceMockData';
+import { useEnrollment } from '@/context/EnrollmentContext';
 import {
   UserCheck,
   Calendar,
@@ -32,6 +32,7 @@ import {
 
 export default function AttendancePage() {
   const { user, role } = useAuth();
+  const { students: enrolledStudents } = useEnrollment();
   const {
     sessions,
     attendances,
@@ -41,6 +42,14 @@ export default function AttendancePage() {
     getStudentAttendance,
     overallInstitutionAttendance,
   } = useAttendance();
+
+  const cohortStudents = React.useMemo(() => {
+    return enrolledStudents.map((s) => ({
+      studentId: s.id,
+      studentName: s.fullName,
+      studentEmail: s.email,
+    }));
+  }, [enrolledStudents]);
 
   const isAdmin = role === 'admin' || user?.role === 'admin';
   const router = useRouter();
@@ -93,7 +102,7 @@ export default function AttendancePage() {
 
   // New Event Schedule Form State
   const [newTitle, setNewTitle] = useState('');
-  const [newCourse, setNewCourse] = useState('Applied AI Systems');
+  const [newCourse, setNewCourse] = useState('AI-Native Project Management');
   const [newType, setNewType] = useState<'LIVE' | 'RECORDING'>('LIVE');
   const [newDate, setNewDate] = useState('Today');
   const [newTime, setNewTime] = useState('11:00 AM - 12:30 PM');
@@ -141,7 +150,7 @@ export default function AttendancePage() {
   });
 
   // Filtered Students
-  const filteredStudents = enrolledCohortStudents.filter((std) => {
+  const filteredStudents = cohortStudents.filter((std) => {
     return (
       std.studentName.toLowerCase().includes(search.toLowerCase()) ||
       std.studentEmail.toLowerCase().includes(search.toLowerCase())
@@ -150,7 +159,7 @@ export default function AttendancePage() {
 
   // Calculate institution summary stats
   const totalSessionsCount = sessions.length;
-  const totalEnrolledCount = enrolledCohortStudents.length;
+  const totalEnrolledCount = cohortStudents.length;
   const markedSessionsCount = Object.values(attendances).length;
 
   if (!isAdmin) {
@@ -507,7 +516,7 @@ export default function AttendancePage() {
                 </p>
               </div>
               <span className="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                {enrolledCohortStudents.length} Active Learners
+                {cohortStudents.length} Active Learners
               </span>
             </div>
 
@@ -714,7 +723,7 @@ export default function AttendancePage() {
           <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
             <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95 max-h-[85vh] flex flex-col">
               {(() => {
-                const std = enrolledCohortStudents.find(
+                const std = cohortStudents.find(
                   (s) => s.studentEmail === selectedStudentForHistory
                 );
                 const stats = getStudentAttendance(selectedStudentForHistory);

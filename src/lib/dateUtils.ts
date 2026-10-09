@@ -27,3 +27,20 @@ export function getRemainingMinutes(expiresAt: string | number | Date | null | u
   const diffMs = exp - Date.now();
   return Math.max(0, Math.round(diffMs / 60000));
 }
+
+/**
+ * Returns human-readable relative time (e.g. 'Just now', '5m ago', '2h ago', '3d ago').
+ */
+export function formatTimeAgo(date: Date | string | number): string {
+  const d = date instanceof Date ? date : new Date(typeof date === 'string' ? parseDbTimestamp(date) : date);
+  const seconds = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (isNaN(seconds) || seconds < 30) return 'Just now';
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+

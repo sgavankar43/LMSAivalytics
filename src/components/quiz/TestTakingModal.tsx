@@ -114,7 +114,7 @@ export const TestTakingModal: React.FC<TestTakingModalProps> = ({
     }));
   };
 
-  const handleFinalSubmit = (isTimeExpiry: boolean = false) => {
+  const handleFinalSubmit = async (isTimeExpiry: boolean = false) => {
     if (timerRef.current) clearInterval(timerRef.current);
 
     // Calculate score
@@ -130,13 +130,13 @@ export const TestTakingModal: React.FC<TestTakingModalProps> = ({
     const scorePercentage = Math.round((pointsScored / totalPoints) * 100);
     const passed = scorePercentage >= quiz.passingPercentage;
 
-    const attempt = submitQuizAttempt({
+    const attempt = await submitQuizAttempt({
       quizId: quiz.id,
       quizTitle: quiz.title,
       courseCode: quiz.courseCode,
       studentId: user?.id || 'std_temp',
-      studentName: user?.name || 'Alex Morgan',
-      studentEmail: user?.email || 'alex.morgan@aivalytics.com',
+      studentName: user?.name || 'Student',
+      studentEmail: user?.email || '',
       score: scorePercentage,
       pointsScored,
       totalPoints,

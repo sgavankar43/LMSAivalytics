@@ -41,18 +41,27 @@ enum Priority {
 }
 
 model User {
-  id            String          @id @default(uuid())
-  email         String          @unique
+  id            String               @id @default(uuid())
+  email         String               @unique
   fullName      String
-  role          Role            @default(LEARNER)
+  role          Role                 @default(LEARNER)
   avatarUrl     String?
   term          String?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  password      String?              // Hashed password stored from CSV import
+  phone         String?
+  location      String?
+  cohort        String?
+  bio           String?
+  headline      String?
+  department    String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
 
-  enrollments   Enrollment[]
-  attendance    AttendanceRecord[]
-  certificates  Certificate[]
+  enrollments      Enrollment[]
+  attendance       AttendanceRecord[]
+  certificates     Certificate[]
+  lessonProgress   UserLessonProgress[]
+  supportTickets   SupportTicket[]    @relation("StudentTickets")
 }
 
 model Course {
@@ -66,7 +75,6 @@ model Course {
   updatedAt     DateTime        @updatedAt
 
   modules       CourseModule[]
-  sessions      Session[]
   enrollments   Enrollment[]
   certificates  Certificate[]
 }
@@ -76,33 +84,55 @@ model CourseModule {
   courseId    String
   course      Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
   title       String
+  subtitle    String        @default("")
+  weeks       String        @default("")
+  certificationName String? 
   order       Int
   lessons     Lesson[]
 }
 
 model Lesson {
-  id          String        @id @default(uuid())
+  id          String               @id @default(uuid())
   moduleId    String
-  module      CourseModule  @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  module      CourseModule         @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   title       String
+  description String               @default("")
   order       Int
-  durationMin Int           @default(30)
+  durationMin Int                  @default(30)
   videoUrl    String?
-  isCompleted Boolean       @default(false)
+  type        String               @default("video") // "video" | "interactive" | "challenge" | "reading"
+
+  progress    UserLessonProgress[]
 }
 
-model Session {
-  id              String         @id @default(uuid())
-  courseId        String
-  course          Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+// Per-user lesson completion tracking (replaces global isCompleted on Lesson)
+model UserLessonProgress {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId    String
+  lesson      Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+
+  @@unique([userId, lessonId])
+}
+
+// Unified session model for live lectures & recordings
+model ClassSession {
+  id              String             @id @default(uuid())
   title           String
-  type            SessionType    @default(RECORDING)
-  status          SessionStatus  @default(CLOSED)
-  scheduledAt     DateTime
-  durationMinutes Int            @default(90)
-  recordingUrl    String?
+  course          String             @default("AI-Native Project Management")
+  instructor      String             @default("Admin Faculty")
   meetingUrl      String?
-  createdAt       DateTime       @default(now())
+  recordingUrl    String?
+  type            String             @default("LIVE") // "LIVE" | "RECORDING"
+  status          String             @default("In Progress") // "In Progress" | "Upcoming" | "Closed"
+  durationMinutes Int                @default(60)
+  startTime       DateTime           @default(now())
+  expiresAt       DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt @default(now())
 
   attendance      AttendanceRecord[]
 }
@@ -115,18 +145,23 @@ model Enrollment {
   course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
   enrolledAt  DateTime  @default(now())
   progress    Float     @default(0.0)
+  status      String    @default("Active") // "Active" | "Pending"
 
   @@unique([userId, courseId])
 }
 
 model AttendanceRecord {
-  id          String    @id @default(uuid())
+  id          String       @id @default(uuid())
   userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   sessionId   String
-  session     Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  attendedAt  DateTime  @default(now())
-  durationMin Int
+  session     ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  status      String       @default("PRESENT") // "PRESENT" | "ABSENT" | "LATE"
+  attendedAt  DateTime     @default(now())
+  durationMin Int          @default(0)
+  notes       String?
+
+  @@unique([userId, sessionId])
 }
 
 model Notification {
@@ -143,11 +178,12 @@ model SupportTicket {
   id                  String    @id @default(uuid())
   ticketCode          String    @default("")
   userId              String
-  studentName         String    @default("Alex Morgan")
-  studentEmail        String    @default("alex.morgan@aivalytics.com")
+  user                User      @relation("StudentTickets", fields: [userId], references: [id], onDelete: Cascade)
+  studentName         String
+  studentEmail        String
   subject             String
   description         String
-  course              String    @default("Academic Information")
+  course              String    @default("AI-Native Project Management")
   category            String    @default("Academic")
   priority            String    @default("Medium")
   status              String    @default("Open") // "Open" | "Under Review" | "Completed" | "Rejected"
@@ -161,22 +197,6 @@ model SupportTicket {
   updatedAt           DateTime  @updatedAt @default(now())
 }
 
-model ClassSession {
-  id              String    @id @default(uuid())
-  title           String
-  course          String    @default("Academic Information")
-  instructor      String    @default("Admin Faculty")
-  meetingUrl      String?
-  recordingUrl    String?
-  type            String    @default("LIVE") // "LIVE" | "RECORDING"
-  status          String    @default("In Progress") // "In Progress" | "Upcoming" | "Closed"
-  durationMinutes Int       @default(60)
-  startTime       DateTime  @default(now())
-  expiresAt       DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt @default(now())
-}
-
 model Certificate {
   id            String    @id @default(uuid())
   credentialId  String    @unique
@@ -187,3 +207,97 @@ model Certificate {
   issueDate     DateTime  @default(now())
   grade         String
 }
+
+model Quiz {
+  id                String         @id @default(uuid())
+  courseId          String?
+  courseCode        String         @default("AINPM-101")
+  courseName        String         @default("AI-Native Project Management")
+  title             String
+  description       String         @default("")
+  timeLimitMinutes  Int            @default(20)
+  passingPercentage Int            @default(70)
+  createdAt         DateTime       @default(now())
+
+  questions         QuizQuestion[]
+  attempts          QuizAttempt[]
+}
+
+model QuizQuestion {
+  id             String   @id @default(uuid())
+  quizId         String
+  quiz           Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  questionNumber Int
+  questionText   String
+  optionsJson    Json
+  correctOption  String
+  explanation    String   @default("")
+}
+
+model QuizAttempt {
+  id               String   @id @default(uuid())
+  quizId           String
+  quiz             Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  studentEmail     String
+  studentName      String
+  score            Float
+  totalQuestions   Int
+  correctCount     Int
+  passed           Boolean  @default(false)
+  timeSpentSeconds Int      @default(0)
+  completedAt      DateTime @default(now())
+}
+
+model ProjectModule {
+  id                String           @id @default(uuid())
+  courseId          String?
+  title             String
+  subtitle          String           @default("")
+  weeks             String           @default("")
+  miniChallenge     String           @default("")
+  deliverableBuild  String           @default("")
+  certificationName String?
+  order             Int              @default(1)
+  createdAt         DateTime         @default(now())
+
+  subparts          ProjectSubpart[]
+  submissions       ProjectSubmission[]
+}
+
+model ProjectSubpart {
+  id             String              @id @default(uuid())
+  moduleId       String
+  module         ProjectModule       @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  subpartCode    String              @default("")
+  title          String
+  description    String              @default("")
+  deadline       String              @default("")
+  allowedFormats String[]            @default(["pdf", "link"])
+  maxPoints      Int                 @default(100)
+  guidelines     String[]            @default([])
+  order          Int                 @default(1)
+
+  submissions    ProjectSubmission[]
+}
+
+model ProjectSubmission {
+  id               String          @id @default(uuid())
+  moduleId         String
+  module           ProjectModule   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  subpartId        String
+  subpart          ProjectSubpart  @relation(fields: [subpartId], references: [id], onDelete: Cascade)
+  studentId        String
+  studentEmail     String
+  studentName      String
+  submittedAt      DateTime        @default(now())
+  status           String          @default("Submitted")
+  score            Float?
+  maxPoints        Int             @default(100)
+  evaluatorName    String?
+  evaluatorRemarks String?
+  evaluatedAt      DateTime?
+  studentNotes     String?
+  filesJson        Json?
+  linksJson        Json?
+}
+

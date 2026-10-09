@@ -5,6 +5,7 @@ import { SupportTicket, TicketStatus, TicketCategory, TicketPriority, StudentFee
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { supabase } from '@/lib/supabase/client';
+import { formatTimeAgo } from '@/lib/dateUtils';
 
 interface SupportTicketContextType {
   tickets: SupportTicket[];
@@ -45,18 +46,6 @@ const SupportTicketContext = createContext<SupportTicketContextType | undefined>
 
 const TICKETS_STORAGE_KEY = 'aivalytics_support_tickets_v4';
 
-function formatTimeAgo(date: Date): string {
-  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (isNaN(seconds) || seconds < 30) return 'Just now';
-  if (seconds < 60) return `${seconds}s ago`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
 function mapDbToUiTicket(row: any): SupportTicket {
   const code =
     row.ticketCode && row.ticketCode.trim() !== ''
@@ -94,9 +83,9 @@ function mapDbToUiTicket(row: any): SupportTicket {
       : 'Just now',
     repliesCount: (row.adminRemarks ? 1 : 0) + (row.studentFeedback ? 1 : 0),
     description: row.description || '',
-    studentName: row.studentName || row.userId || 'Alex Morgan',
-    studentEmail: row.studentEmail || (row.userId?.includes('@') ? row.userId : 'alex.morgan@aivalytics.com'),
-    userId: row.userId || 'alex.morgan@aivalytics.com',
+    studentName: row.studentName || row.userId || 'Student',
+    studentEmail: row.studentEmail || (row.userId?.includes('@') ? row.userId : ''),
+    userId: row.userId || '',
     adminRemarks: row.adminRemarks || null,
     adminRespondedAt: row.adminRespondedAt ? formatTimeAgo(new Date(row.adminRespondedAt)) : null,
     adminRespondedBy: row.adminRespondedBy || null,
@@ -105,59 +94,6 @@ function mapDbToUiTicket(row: any): SupportTicket {
     studentFeedbackAt: row.studentFeedbackAt ? formatTimeAgo(new Date(row.studentFeedbackAt)) : null,
   };
 }
-
-const defaultInitialTickets: SupportTicket[] = [
-  {
-    id: 'tkt_default_1',
-    ticketId: 'TKT-8492',
-    ticketCode: 'TKT-8492',
-    subject: 'Access permission issue for Session 1 Quiz on Research Design',
-    course: 'AI-Native Project Management',
-    category: 'Academic',
-    status: 'Under Review',
-    priority: 'High',
-    createdAt: '2h ago',
-    lastUpdated: '1h ago',
-    repliesCount: 1,
-    description:
-      'When clicking on the Session 1 graded quiz submission link, the portal returns permission error 403. Need access verified before Sunday midnight cutoff.',
-    studentName: 'Alex Morgan',
-    studentEmail: 'alex.morgan@aivalytics.com',
-    userId: 'alex.morgan@aivalytics.com',
-    adminRemarks:
-      'Faculty coordinator has verified your enrollment cohort. Permission matrix is being rebuilt in the grading server.',
-    adminRespondedAt: '1h ago',
-    adminRespondedBy: 'Dr. Sarah Jenkins (Faculty Support)',
-    studentFeedback: null,
-    studentFeedbackNote: null,
-    studentFeedbackAt: null,
-  },
-  {
-    id: 'tkt_default_2',
-    ticketId: 'TKT-8488',
-    ticketCode: 'TKT-8488',
-    subject: 'Recording download audio desync in Academic Policies lecture',
-    course: 'AI-Native Project Management',
-    category: 'Technical',
-    status: 'Completed',
-    priority: 'Medium',
-    createdAt: '1d ago',
-    lastUpdated: '5h ago',
-    repliesCount: 2,
-    description:
-      'The downloadable MP4 lecture video has a 2-second audio delay around timestamp 34:10 during the honor code presentation.',
-    studentName: 'Alex Morgan',
-    studentEmail: 'alex.morgan@aivalytics.com',
-    userId: 'alex.morgan@aivalytics.com',
-    adminRemarks:
-      'Our multimedia engineering team re-encoded the video file. Audio sync is verified and replaced on the CDN.',
-    adminRespondedAt: '5h ago',
-    adminRespondedBy: 'Technical Operations Desk',
-    studentFeedback: 'Satisfied',
-    studentFeedbackNote: 'Downloaded the new file and audio sync is perfect now. Thank you!',
-    studentFeedbackAt: '4h ago',
-  },
-];
 
 export const SupportTicketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
@@ -177,7 +113,7 @@ export const SupportTicketProvider: React.FC<{ children: React.ReactNode }> = ({
         console.error('Failed to parse cached tickets from localStorage', err);
       }
     }
-    return defaultInitialTickets;
+    return []; // Start empty — populated from Supabase DB
   });
 
   // Sync state to localStorage immediately whenever tickets change
@@ -215,27 +151,7 @@ export const SupportTicketProvider: React.FC<{ children: React.ReactNode }> = ({
           return [...optimisticTickets, ...dbTickets];
         });
       } else {
-        // If DB table is brand new, seed the default tickets into Postgres
-        const rowsToSeed = defaultInitialTickets.map((t) => ({
-          ticketCode: t.ticketCode,
-          userId: t.userId,
-          studentName: t.studentName,
-          studentEmail: t.studentEmail,
-          subject: t.subject,
-          description: t.description,
-          course: t.course,
-          category: t.category,
-          priority: t.priority,
-          status: t.status,
-          adminRemarks: t.adminRemarks,
-          adminRespondedAt: new Date(Date.now() - 3600000).toISOString(),
-          adminRespondedBy: t.adminRespondedBy,
-          studentFeedback: t.studentFeedback,
-          studentFeedbackNote: t.studentFeedbackNote,
-          studentFeedbackAt: t.studentFeedbackAt ? new Date().toISOString() : null,
-        }));
-
-        await supabase.from('SupportTicket').insert(rowsToSeed);
+        setTickets([]);
       }
     } catch (err) {
       console.error('Failed to load tickets from Supabase Postgres:', err);
@@ -298,9 +214,9 @@ export const SupportTicketProvider: React.FC<{ children: React.ReactNode }> = ({
       const randomNum = Math.floor(1000 + Math.random() * 9000);
       const ticketCode = `TKT-${randomNum}`;
       const tempId = `tkt_opt_${Date.now()}`;
-      const studentName = data.studentName || user?.name || 'Alex Morgan';
-      const studentEmail = data.studentEmail || user?.email || 'alex.morgan@aivalytics.com';
-      const userId = user?.id || user?.email || 'alex.morgan@aivalytics.com';
+      const studentName = user?.name || data.studentName || 'Student';
+      const studentEmail = user?.email || data.studentEmail || '';
+      const userId = user?.id || '';
 
       const newUiTicket: SupportTicket = {
         id: tempId,
