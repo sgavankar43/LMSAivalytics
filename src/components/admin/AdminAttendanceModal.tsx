@@ -38,12 +38,12 @@ export const AdminAttendanceModal: React.FC<AdminAttendanceModalProps> = ({
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (session) {
+    if (isOpen && session?.id) {
       const currentAttendance = getSessionAttendance(session.id);
-      setLocalRecords(currentAttendance.records);
+      setLocalRecords(currentAttendance.records || {});
       setSavedSuccess(false);
     }
-  }, [session, getSessionAttendance]);
+  }, [isOpen, session?.id]);
 
   if (!isOpen || !session) return null;
 
@@ -57,26 +57,35 @@ export const AdminAttendanceModal: React.FC<AdminAttendanceModalProps> = ({
     totalStudents > 0 ? Math.round((attendedCount / totalStudents) * 100) : 0;
 
   const handleToggleStatus = (email: string, newStatus: AttendanceStatus) => {
-    setLocalRecords((prev) => ({
-      ...prev,
-      [email]: {
-        ...prev[email],
-        status: newStatus,
-        markedAt: 'Just now',
-      },
-    }));
+    const key = email.toLowerCase().trim();
+    setLocalRecords((prev) => {
+      const matchedKey =
+        Object.keys(prev).find((k) => k.toLowerCase().trim() === key) || key;
+      const existing = prev[matchedKey] || prev[email];
+      if (!existing) return prev;
+      return {
+        ...prev,
+        [matchedKey]: {
+          ...existing,
+          status: newStatus,
+          markedAt: 'Just now',
+        },
+      };
+    });
   };
 
   const handleMarkAll = (status: AttendanceStatus) => {
-    const updated: Record<string, StudentAttendanceRecord> = {};
-    Object.entries(localRecords).forEach(([email, rec]) => {
-      updated[email] = {
-        ...rec,
-        status,
-        markedAt: 'Just now',
-      };
+    setLocalRecords((prev) => {
+      const updated: Record<string, StudentAttendanceRecord> = {};
+      Object.entries(prev).forEach(([key, rec]) => {
+        updated[key] = {
+          ...rec,
+          status,
+          markedAt: 'Just now',
+        };
+      });
+      return updated;
     });
-    setLocalRecords(updated);
   };
 
   const handleSave = async () => {

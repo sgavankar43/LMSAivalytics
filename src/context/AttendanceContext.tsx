@@ -225,16 +225,19 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               }
             });
 
-            // If some learners don't have records yet for an upcoming/active session, add them as PRESENT
-            if (matching.length === 0 && learners && learners.length > 0) {
+            // Ensure all active learners in cohort are represented without overwriting existing DB statuses
+            if (learners && learners.length > 0) {
               learners.forEach((l) => {
-                sessRecords[l.email.toLowerCase()] = {
-                  studentId: l.id,
-                  studentName: l.fullName,
-                  studentEmail: l.email,
-                  status: 'PRESENT',
-                  markedAt: 'Pending confirmation',
-                };
+                const emailKey = l.email.toLowerCase().trim();
+                if (!sessRecords[emailKey]) {
+                  sessRecords[emailKey] = {
+                    studentId: l.id,
+                    studentName: l.fullName,
+                    studentEmail: l.email,
+                    status: 'PRESENT',
+                    markedAt: 'Pending confirmation',
+                  };
+                }
               });
             }
 
@@ -327,7 +330,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       supabase.removeChannel(sessionChannel);
       supabase.removeChannel(attendanceChannel);
     };
-  }, [fetchSessionsFromDb, dbLearners]);
+  }, [fetchSessionsFromDb]);
 
   // 4. Dynamic Expiration & Status Transition Engine
   useEffect(() => {
@@ -600,36 +603,41 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Get or initialize attendance for a session
   const getSessionAttendance = useCallback(
     (sessionId: string): SessionAttendance => {
-      if (attendances[sessionId]) {
-        return attendances[sessionId];
-      }
-
       const session = sessions.find((s) => s.id === sessionId);
-      const initialRecords: Record<string, StudentAttendanceRecord> = {};
-      
-      dbLearners.forEach((student) => {
-        initialRecords[student.email.toLowerCase()] = {
-          studentId: student.id,
-          studentName: student.fullName,
-          studentEmail: student.email,
-          status: 'PRESENT',
-        };
+      const existing = attendances[sessionId];
+
+      const mergedRecords: Record<string, StudentAttendanceRecord> = existing?.records
+        ? { ...existing.records }
+        : {};
+
+      // Ensure every active learner in cohort is represented while preserving marked status
+      dbLearnersRef.current.forEach((student) => {
+        const emailKey = student.email.toLowerCase().trim();
+        if (!mergedRecords[emailKey]) {
+          mergedRecords[emailKey] = {
+            studentId: student.id,
+            studentName: student.fullName,
+            studentEmail: student.email,
+            status: 'PRESENT',
+            markedAt: 'Pending confirmation',
+          };
+        }
       });
 
-      const metrics = calculateAttendanceMetrics(initialRecords);
+      const metrics = calculateAttendanceMetrics(mergedRecords);
 
       return {
         sessionId,
-        sessionTitle: session?.title || 'Course Lecture Session',
-        course: session?.course || 'General',
-        date: session?.date || 'Scheduled',
-        time: session?.time || '10:00 AM',
-        lastUpdated: 'Recent',
+        sessionTitle: session?.title || existing?.sessionTitle || 'Course Lecture Session',
+        course: session?.course || existing?.course || 'General',
+        date: session?.date || existing?.date || 'Scheduled',
+        time: session?.time || existing?.time || '10:00 AM',
+        lastUpdated: existing?.lastUpdated || 'Recent',
         ...metrics,
-        records: initialRecords,
+        records: mergedRecords,
       };
     },
-    [attendances, sessions, dbLearners]
+    [attendances, sessions]
   );
 
   // Get student attendance metrics for the student dashboard
