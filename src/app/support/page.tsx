@@ -68,7 +68,7 @@ export default function SupportPage() {
 
   // New ticket form state
   const [newSubject, setNewSubject] = useState('');
-  const [newCourse, setNewCourse] = useState('Academic Information');
+  const [newCourse, setNewCourse] = useState('AI-Native Project Management');
   const [newCategory, setNewCategory] = useState<TicketCategory>('Academic');
   const [newPriority, setNewPriority] = useState<TicketPriority>('Medium');
   const [newDescription, setNewDescription] = useState('');
@@ -547,10 +547,10 @@ export default function SupportPage() {
                       onChange={(e) => setNewCourse(e.target.value)}
                       className="w-full text-xs p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#3ECE92] bg-white"
                     >
-                      <option>Academic Information</option>
-                      <option>Business Research Method</option>
-                      <option>Applied AI Systems</option>
-                      <option>Quantitative Modeling</option>
+                      <option>AI-Native Project Management</option>
+                      <option>Module 1: AI Foundations</option>
+                      <option>Module 2: AI Agents & Orchestration</option>
+                      <option>Module 3: AI-Native Project Management</option>
                     </select>
                   </div>
 

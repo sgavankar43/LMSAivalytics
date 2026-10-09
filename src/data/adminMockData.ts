@@ -91,14 +91,14 @@ export const initialAdminTasks: AdminTask[] = [
 export const initialBroadcasts: BroadcastNotification[] = [
   {
     id: 'bc_1',
-    title: 'Session 2 Live Seminar link verified for Academic Information',
-    message: 'The interactive meeting link for Session 2 has been updated. Join via your student events calendar.',
+    title: 'Live Lab: Multi-Agent Orchestration Room Link Verified',
+    message: 'The interactive meeting link for the Multi-Agent Lab has been updated. Join via your student events calendar.',
     priority: 'Urgent',
     targetType: 'course',
-    targetValue: 'ACA-101',
+    targetValue: 'AINPM-101',
     sentAt: 'Aug 18, 2026 • 10:45 AM',
-    totalTargetCount: 42,
-    readCount: 38,
+    totalTargetCount: 148,
+    readCount: 138,
   },
   {
     id: 'bc_2',
@@ -112,8 +112,8 @@ export const initialBroadcasts: BroadcastNotification[] = [
   },
   {
     id: 'bc_3',
-    title: 'Official Fall 2026 Semester Guidelines Released',
-    message: 'Review student evaluation criteria, academic honor code, and milestone requirements in the curriculum handbook.',
+    title: 'Official Fall 2026 AI-Native PM Program Guidelines Released',
+    message: 'Review student evaluation criteria, CTID rubrics, and milestone requirements in the curriculum handbook.',
     priority: 'Normal',
     targetType: 'all',
     sentAt: 'Aug 01, 2026 • 08:30 AM',
@@ -127,8 +127,8 @@ export const initialImportedStudents: ImportedStudent[] = [
     id: 'STD_1',
     fullName: 'Alex Morgan',
     email: 'alex.morgan@aivalytics.com',
-    courseCode: 'ACA-101',
-    courseName: 'Academic Information & Governance',
+    courseCode: 'AINPM-101',
+    courseName: 'AI-Native Project Management',
     term: 'Fall 2026',
     enrolledAt: 'Aug 01, 2026',
     status: 'Active',
@@ -137,8 +137,8 @@ export const initialImportedStudents: ImportedStudent[] = [
     id: 'STD_2',
     fullName: 'Sarah Connor',
     email: 'sarah.connor@aivalytics.com',
-    courseCode: 'BRM-204',
-    courseName: 'Business Research Methodologies',
+    courseCode: 'AINPM-101',
+    courseName: 'AI-Native Project Management',
     term: 'Fall 2026',
     enrolledAt: 'Aug 03, 2026',
     status: 'Active',
@@ -147,8 +147,8 @@ export const initialImportedStudents: ImportedStudent[] = [
     id: 'STD_3',
     fullName: 'Emily Watson',
     email: 'emily.watson@aivalytics.com',
-    courseCode: 'AML-305',
-    courseName: 'Applied AI & Neural Predictive Analytics',
+    courseCode: 'AINPM-101',
+    courseName: 'AI-Native Project Management',
     term: 'Fall 2026',
     enrolledAt: 'Aug 04, 2026',
     status: 'Active',
@@ -157,8 +157,8 @@ export const initialImportedStudents: ImportedStudent[] = [
     id: 'STD_4',
     fullName: 'David Miller',
     email: 'david.miller@aivalytics.com',
-    courseCode: 'AML-305',
-    courseName: 'Applied AI & Neural Predictive Analytics',
+    courseCode: 'AINPM-101',
+    courseName: 'AI-Native Project Management',
     term: 'Fall 2026',
     enrolledAt: 'Aug 05, 2026',
     status: 'Active',
@@ -167,8 +167,8 @@ export const initialImportedStudents: ImportedStudent[] = [
     id: 'STD_5',
     fullName: 'Sophia Patel',
     email: 'sophia.p@aivalytics.com',
-    courseCode: 'ACA-101',
-    courseName: 'Academic Information & Governance',
+    courseCode: 'AINPM-101',
+    courseName: 'AI-Native Project Management',
     term: 'Fall 2026',
     enrolledAt: 'Aug 07, 2026',
     status: 'Active',
@@ -177,8 +177,8 @@ export const initialImportedStudents: ImportedStudent[] = [
     id: 'STD_6',
     fullName: 'Liam Chen',
     email: 'liam.chen@aivalytics.com',
-    courseCode: 'BRM-204',
-    courseName: 'Business Research Methodologies',
+    courseCode: 'AINPM-101',
+    courseName: 'AI-Native Project Management',
     term: 'Fall 2026',
     enrolledAt: 'Aug 10, 2026',
     status: 'Active',
@@ -186,6 +186,6 @@ export const initialImportedStudents: ImportedStudent[] = [
 ];
 
 export const sampleCsvTemplate = `Student ID,Full Name,Email,Course Code,Course Name,Term,Status,Enrolled Date
-STD_7,Elena Rostova,elena.r@aivalytics.com,ACA-101,Academic Information & Governance,Fall 2026,Active,Aug 15 2026
-STD_8,Marcus Thorne,marcus.t@aivalytics.com,BRM-204,Business Research Methodologies,Fall 2026,Active,Aug 15 2026
-STD_9,Aisha Khan,aisha.k@aivalytics.com,AML-305,Applied AI & Neural Predictive Analytics,Fall 2026,Active,Aug 15 2026`;
+STD_7,Elena Rostova,elena.r@aivalytics.com,AINPM-101,AI-Native Project Management,Fall 2026,Active,Aug 15 2026
+STD_8,Marcus Thorne,marcus.t@aivalytics.com,AINPM-101,AI-Native Project Management,Fall 2026,Active,Aug 15 2026
+STD_9,Aisha Khan,aisha.k@aivalytics.com,AINPM-101,AI-Native Project Management,Fall 2026,Active,Aug 15 2026`;

@@ -153,9 +153,7 @@ export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
       }
 
       const courseMap: Record<string, string> = {
-        'ACA-101': 'Academic Information & Governance',
-        'BRM-204': 'Business Research Methodologies',
-        'AML-305': 'Applied AI & Neural Predictive Analytics',
+        'AINPM-101': 'AI-Native Project Management',
       };
 
       const rows: ParsedRow[] = [];
@@ -164,11 +162,11 @@ export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
         if (parts.length >= 2) {
           const email = emailIdx !== -1 && parts[emailIdx] ? parts[emailIdx] : '';
           const fullName = nameIdx !== -1 && parts[nameIdx] ? parts[nameIdx] : 'Learner';
-          const courseCode = codeIdx !== -1 && parts[codeIdx] ? parts[codeIdx] : 'ACA-101';
+          const courseCode = codeIdx !== -1 && parts[codeIdx] ? parts[codeIdx] : 'AINPM-101';
           const courseName =
             courseNameIdx !== -1 && parts[courseNameIdx]
               ? parts[courseNameIdx]
-              : courseMap[courseCode] || 'Core Curriculum';
+              : courseMap[courseCode] || 'AI-Native Project Management';
           const term = termIdx !== -1 && parts[termIdx] ? parts[termIdx] : 'Fall 2026';
           const statusRaw = statusIdx !== -1 && parts[statusIdx] ? parts[statusIdx] : 'Active';
           const status: 'Active' | 'Pending' =

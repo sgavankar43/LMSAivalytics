@@ -89,7 +89,7 @@ function mapDbToSession(row: any): SessionItem {
   return {
     id: row.id,
     title: row.title,
-    course: row.course || 'Academic Information',
+    course: row.course || 'AI-Native Project Management',
     type: (row.type as SessionType) || 'LIVE',
     status,
     date: dateStr,

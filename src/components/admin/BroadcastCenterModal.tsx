@@ -36,7 +36,7 @@ export const BroadcastCenterModal: React.FC<BroadcastCenterModalProps> = ({
   const [message, setMessage] = useState('');
   const [priority, setPriority] = useState<BroadcastNotification['priority']>('Important');
   const [targetType, setTargetType] = useState<BroadcastNotification['targetType']>('all');
-  const [targetCourse, setTargetCourse] = useState('ACA-101');
+  const [targetCourse, setTargetCourse] = useState('AINPM-101');
   const [targetEmail, setTargetEmail] = useState('');
   const [sentSuccess, setSentSuccess] = useState(false);
 
@@ -51,7 +51,7 @@ export const BroadcastCenterModal: React.FC<BroadcastCenterModalProps> = ({
 
     if (targetType === 'course') {
       targetValue = targetCourse;
-      recipientCount = targetCourse === 'ACA-101' ? 42 : targetCourse === 'BRM-204' ? 64 : 42;
+      recipientCount = 148;
     } else if (targetType === 'individual') {
       targetValue = targetEmail;
       recipientCount = 1;
@@ -253,9 +253,7 @@ export const BroadcastCenterModal: React.FC<BroadcastCenterModalProps> = ({
                         onChange={(e) => setTargetCourse(e.target.value)}
                         className="w-full text-xs p-2.5 bg-white rounded-xl border border-gray-200 focus:outline-none focus:border-[#3ECE92]"
                       >
-                        <option value="ACA-101">Academic Information & Governance (ACA-101) • 42 students</option>
-                        <option value="BRM-204">Business Research Methodologies (BRM-204) • 64 students</option>
-                        <option value="AML-305">Applied AI & Neural Predictive Analytics (AML-305) • 42 students</option>
+                        <option value="AINPM-101">AI-Native Project Management (AINPM-101) • 148 learners</option>
                       </select>
                     </div>
                   )}

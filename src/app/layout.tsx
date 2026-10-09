@@ -10,6 +10,8 @@ import { EnrollmentProvider } from '@/context/EnrollmentContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { SupportTicketProvider } from '@/context/SupportTicketContext';
 
+import { CourseProvider } from '@/context/CourseContext';
+
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
@@ -46,17 +48,19 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-[#f8faf9] text-gray-900">
         <AuthProvider>
           <SidebarProvider>
-            <TestProvider>
-              <ProjectSubmissionsProvider>
-                <NotificationProvider>
-                  <AttendanceProvider>
-                    <EnrollmentProvider>
-                      <SupportTicketProvider>{children}</SupportTicketProvider>
-                    </EnrollmentProvider>
-                  </AttendanceProvider>
-                </NotificationProvider>
-              </ProjectSubmissionsProvider>
-            </TestProvider>
+            <CourseProvider>
+              <TestProvider>
+                <ProjectSubmissionsProvider>
+                  <NotificationProvider>
+                    <AttendanceProvider>
+                      <EnrollmentProvider>
+                        <SupportTicketProvider>{children}</SupportTicketProvider>
+                      </EnrollmentProvider>
+                    </AttendanceProvider>
+                  </NotificationProvider>
+                </ProjectSubmissionsProvider>
+              </TestProvider>
+            </CourseProvider>
           </SidebarProvider>
         </AuthProvider>
       </body>

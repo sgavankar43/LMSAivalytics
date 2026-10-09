@@ -259,12 +259,12 @@ export default function EnrollmentPage() {
             </div>
             <div className="mt-3">
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl sm:text-3xl font-extrabold text-gray-900">3 Courses</span>
+                <span className="text-2xl sm:text-3xl font-extrabold text-gray-900">Flagship</span>
                 <span className="text-[11px] font-semibold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">
                   Fall 2026
                 </span>
               </div>
-              <p className="text-[11px] text-gray-400 mt-1">ACA-101 • BRM-204 • AML-305</p>
+              <p className="text-[11px] text-gray-400 mt-1">AINPM-101 • 3 Modules • 18 Lessons</p>
             </div>
           </div>
         </div>
@@ -305,9 +305,7 @@ export default function EnrollmentPage() {
                 className="text-xs py-2 px-3 bg-[#f8faf9] rounded-xl border border-gray-200 focus:outline-none focus:border-[#3ECE92] text-gray-700"
               >
                 <option value="All">All Courses</option>
-                <option value="ACA-101">ACA-101 (Academic Info)</option>
-                <option value="BRM-204">BRM-204 (Business Research)</option>
-                <option value="AML-305">AML-305 (Applied AI)</option>
+                <option value="AINPM-101">AINPM-101 (AI-Native PM)</option>
               </select>
 
               {/* Status Selector Filter */}

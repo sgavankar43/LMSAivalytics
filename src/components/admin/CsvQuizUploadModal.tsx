@@ -57,11 +57,7 @@ export const CsvQuizUploadModal: React.FC<CsvQuizUploadModalProps> = ({
   if (!isOpen) return null;
 
   const coursesList = [
-    { code: 'ANPM-101', name: 'AI-Native Project Management Program' },
-    { code: 'ACA-101', name: 'Academic Information & Governance' },
-    { code: 'BRM-204', name: 'Business Research Methodologies' },
-    { code: 'AML-305', name: 'Applied AI & Neural Predictive Analytics' },
-    { code: 'DSE-102', name: 'Data Structures & Algorithms' },
+    { code: 'AINPM-101', name: 'AI-Native Project Management' },
   ];
 
   const handleDownloadSample = () => {

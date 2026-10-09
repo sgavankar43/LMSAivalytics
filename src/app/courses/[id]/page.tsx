@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
-import { mockCourses } from '@/data/mockData';
+import { useCourses } from '@/context/CourseContext';
 import {
   ArrowLeft,
   Play,
@@ -16,50 +16,68 @@ import {
   Clock,
   Sparkles,
   Share2,
+  Check,
+  Award,
+  Layers,
+  Send,
+  BookOpen,
 } from 'lucide-react';
 
 export default function CourseDetailPage() {
-  const params = useParams();
   const router = useRouter();
-  const courseId = params?.id as string;
+  const searchParams = useSearchParams();
+  const {
+    activeCourse,
+    modules,
+    isLessonCompleted,
+    toggleLessonComplete,
+    courseProgress,
+    completedLessonsCount,
+    totalLessons,
+  } = useCourses();
 
-  const course = mockCourses.find((c) => c.id === courseId) || mockCourses[0];
+  const allSubmodules = modules.flatMap((m) => m.submodules);
+  const initialLessonParam = searchParams.get('lesson');
 
-  const [activeLessonId, setActiveLessonId] = useState('l_1');
+  const [activeLessonId, setActiveLessonId] = useState<string>(
+    initialLessonParam || allSubmodules[0]?.id || 'sub_1_1'
+  );
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'notes' | 'resources' | 'discussion'>('overview');
-  const [completedLessonIds, setCompletedLessonIds] = useState<string[]>(['l_1', 'l_2']);
 
-  const modules = [
-    {
-      id: 'm_1',
-      title: 'Module 1: Orientation & Foundations',
-      lessons: [
-        { id: 'l_1', title: '1.1 Institutional Policies & Honor Code', duration: '28m', type: 'video' },
-        { id: 'l_2', title: '1.2 Degree Roadmaps & Credit Milestones', duration: '34m', type: 'video' },
-        { id: 'l_3', title: '1.3 Academic Integrity & Citation Standards', duration: '45m', type: 'video' },
-      ],
-    },
-    {
-      id: 'm_2',
-      title: 'Module 2: Governance & Evaluation Architecture',
-      lessons: [
-        { id: 'l_4', title: '2.1 Grading Rubrics & Peer Assessment Protocols', duration: '40m', type: 'video' },
-        { id: 'l_5', title: '2.2 Faculty Review Cycles & Appeal Procedures', duration: '32m', type: 'video' },
-        { id: 'l_6', title: '2.3 Continuous Learning Evaluation Framework', duration: '50m', type: 'video' },
-      ],
-    },
-  ];
+  // Question form state
+  const [questionText, setQuestionText] = useState('');
+  const [qaFeedback, setQaFeedback] = useState<string | null>(null);
+
+  // Sync with search param if changed
+  useEffect(() => {
+    const lessonParam = searchParams.get('lesson');
+    if (lessonParam && allSubmodules.some((s) => s.id === lessonParam)) {
+      setActiveLessonId(lessonParam);
+    }
+  }, [searchParams, allSubmodules]);
 
   const currentLesson =
-    modules.flatMap((m) => m.lessons).find((l) => l.id === activeLessonId) || modules[0].lessons[0];
+    allSubmodules.find((l) => l.id === activeLessonId) || allSubmodules[0];
 
-  const toggleLessonComplete = (id: string) => {
-    if (completedLessonIds.includes(id)) {
-      setCompletedLessonIds(completedLessonIds.filter((item) => item !== id));
-    } else {
-      setCompletedLessonIds([...completedLessonIds, id]);
+  const currentParentModule = modules.find((m) =>
+    m.submodules.some((s) => s.id === currentLesson?.id)
+  );
+
+  const isCompleted = currentLesson ? isLessonCompleted(currentLesson.id) : false;
+
+  const handleToggleComplete = () => {
+    if (currentLesson) {
+      toggleLessonComplete(currentLesson.id);
     }
+  };
+
+  const handleSendQuestion = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!questionText.trim()) return;
+    setQaFeedback('Your question was transmitted to Admin Faculty. You will receive an answer in your notification center.');
+    setQuestionText('');
+    setTimeout(() => setQaFeedback(null), 5000);
   };
 
   return (
@@ -72,37 +90,72 @@ export default function CourseDetailPage() {
             className="inline-flex items-center gap-2 text-xs font-semibold text-gray-600 hover:text-gray-900 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back to My Courses</span>
+            <span>Back to Curriculum Hub</span>
           </button>
 
-          <span className="text-xs font-mono font-medium px-2.5 py-1 rounded-md bg-[#e8f8f0] text-[#059669]">
-            {course.code}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono font-medium px-2.5 py-1 rounded-md bg-[#e8f8f0] text-[#059669]">
+              {activeCourse.code}
+            </span>
+            <span className="text-xs font-mono text-gray-500">
+              {courseProgress}% completed
+            </span>
+          </div>
         </div>
 
         {/* Course Title Header */}
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-            {course.title}
-          </h1>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Instructor: <span className="font-semibold text-gray-800">{course.instructor}</span> ({course.instructorRole})
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-mono text-[#059669] font-bold">
+              <span>Module {currentParentModule?.moduleNumber || 1}: {currentParentModule?.title}</span>
+              <span>•</span>
+              <span>Part {currentLesson?.subpartCode}</span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mt-0.5">
+              {currentLesson?.title}
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">
+              Instructor: <span className="font-semibold text-gray-800">{activeCourse.instructor}</span> ({activeCourse.instructorRole})
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleToggleComplete}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs ${
+                isCompleted
+                  ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300'
+                  : 'bg-[#121614] text-white hover:bg-black'
+              }`}
+            >
+              {isCompleted ? (
+                <>
+                  <Check className="w-4 h-4 stroke-[3]" />
+                  <span>Completed</span>
+                </>
+              ) : (
+                <>
+                  <Circle className="w-4 h-4" />
+                  <span>Mark Complete</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Classroom Grid: Video Player + Curriculum Sidebar */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Video & Content Viewer (2 Cols) */}
           <div className="lg:col-span-2 space-y-4">
-            {/* Mock High-Res Video Player */}
+            {/* High-Res Video Player */}
             <div className="bg-[#121614] rounded-2xl aspect-video w-full overflow-hidden relative flex flex-col justify-between p-6 shadow-xl border border-gray-800 text-white">
               {/* Top Video Header */}
               <div className="flex items-center justify-between text-xs text-gray-300">
-                <span className="bg-black/40 px-3 py-1 rounded-full backdrop-blur-xs font-medium">
-                  {currentLesson.title}
+                <span className="bg-black/60 px-3 py-1 rounded-full backdrop-blur-xs font-medium border border-white/10">
+                  Part {currentLesson?.subpartCode}: {currentLesson?.title}
                 </span>
-                <span className="bg-[#3ECE92]/20 text-[#3ECE92] border border-[#3ECE92]/30 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                  HD 1080p
+                <span className="bg-[#3ECE92]/20 text-[#3ECE92] border border-[#3ECE92]/30 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider font-mono">
+                  HD 1080p • {currentLesson?.duration}
                 </span>
               </div>
 
@@ -124,21 +177,21 @@ export default function CourseDetailPage() {
               <div className="space-y-2">
                 {/* Progress bar */}
                 <div className="w-full bg-white/20 h-1.5 rounded-full overflow-hidden cursor-pointer">
-                  <div className="bg-[#3ECE92] h-full w-2/5 rounded-full" />
+                  <div className="bg-[#3ECE92] h-full w-2/5 rounded-full shadow-[0_0_8px_rgba(62,206,146,0.6)]" />
                 </div>
                 <div className="flex items-center justify-between text-xs text-gray-400 font-mono">
-                  <span>14:20 / {currentLesson.duration}</span>
+                  <span>18:40 / {currentLesson?.duration}</span>
                   <div className="flex items-center gap-3">
                     <span className="text-[11px] hover:text-white cursor-pointer">1.0x</span>
                     <button
-                      onClick={() => toggleLessonComplete(currentLesson.id)}
+                      onClick={handleToggleComplete}
                       className={`text-xs px-2.5 py-1 rounded-md transition-colors ${
-                        completedLessonIds.includes(currentLesson.id)
+                        isCompleted
                           ? 'bg-[#3ECE92] text-[#111614] font-semibold'
                           : 'bg-white/10 hover:bg-white/20 text-white'
                       }`}
                     >
-                      {completedLessonIds.includes(currentLesson.id) ? '✓ Completed' : 'Mark Complete'}
+                      {isCompleted ? '✓ Completed' : 'Mark Complete'}
                     </button>
                   </div>
                 </div>
@@ -148,11 +201,11 @@ export default function CourseDetailPage() {
             {/* Content Tabs (Overview, Notes, Resources, Q&A) */}
             <div className="bg-white rounded-2xl border border-[#eaedf0] p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
               {/* Tab Navigation */}
-              <div className="flex border-b border-gray-100 gap-6 text-xs sm:text-sm font-semibold mb-4">
+              <div className="flex border-b border-gray-100 gap-6 text-xs sm:text-sm font-semibold mb-5">
                 {[
-                  { id: 'overview', label: 'Overview' },
-                  { id: 'notes', label: 'Lecture Notes' },
-                  { id: 'resources', label: 'Downloads & Materials' },
+                  { id: 'overview', label: 'Lesson Overview' },
+                  { id: 'notes', label: 'Lecture Notes & SOPs' },
+                  { id: 'resources', label: 'Downloads & Frameworks' },
                   { id: 'discussion', label: 'Faculty Q&A' },
                 ].map((tab) => (
                   <button
@@ -166,76 +219,135 @@ export default function CourseDetailPage() {
                   >
                     {tab.label}
                     {activeTab === tab.id && (
-                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#3ECE92] rounded-full" />
+                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#059669] rounded-full" />
                     )}
                   </button>
                 ))}
               </div>
 
-              {/* Tab Content */}
+              {/* Tab 1: Overview */}
               {activeTab === 'overview' && (
-                <div className="space-y-3 text-xs sm:text-sm text-gray-600 leading-relaxed">
-                  <p>
-                    This session dives into foundational paradigms, institutional guidelines, and learning roadmap objectives. Students are advised to take active notes and review the accompanying reading syllabus.
-                  </p>
-                  <div className="bg-[#f8faf9] p-4 rounded-xl border border-gray-100 mt-3">
-                    <h5 className="font-semibold text-gray-900 text-xs mb-1">Key Learning Objectives:</h5>
-                    <ul className="list-disc list-inside space-y-1 text-xs text-gray-600">
-                      <li>Understand institutional governance and milestone criteria</li>
-                      <li>Review honor code protocols and ethical citations</li>
-                      <li>Prepare for upcoming live interactive seminar sessions</li>
-                    </ul>
+                <div className="space-y-4 text-xs sm:text-sm text-gray-600 leading-relaxed">
+                  <div className="space-y-2">
+                    <h3 className="font-bold text-gray-900 text-sm">
+                      About this Syllabus Unit
+                    </h3>
+                    <p>{currentLesson?.description}</p>
+                  </div>
+
+                  {/* Core Takeaways */}
+                  {currentLesson?.takeaways && currentLesson.takeaways.length > 0 && (
+                    <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-2">
+                      <h4 className="font-bold text-gray-900 text-xs uppercase font-mono tracking-wider">
+                        Key Framework Takeaways & Outcomes
+                      </h4>
+                      <ul className="space-y-1.5">
+                        {currentLesson.takeaways.map((takeaway, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-xs text-gray-700">
+                            <Check className="w-3.5 h-3.5 text-[#059669] shrink-0 mt-0.5" />
+                            <span>{takeaway}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Quote Banner from Brochure */}
+                  <div className="p-4 rounded-xl bg-gradient-to-r from-[#e8f8f0] to-[#f0fbf6] border border-[#d1f4e2] text-[#065f46] text-xs font-medium italic">
+                    &ldquo;Great AI systems are built on great context—not great prompts. You don&rsquo;t just learn how execution works. You build and run it.&rdquo;
                   </div>
                 </div>
               )}
 
+              {/* Tab 2: Notes */}
               {activeTab === 'notes' && (
-                <div className="text-xs text-gray-600 space-y-2">
-                  <p><strong>Note 1:</strong> Always cross-reference the credit handbook for semester prerequisites.</p>
-                  <p><strong>Note 2:</strong> Late submissions without prior faculty clearance incur a 10% penalty per calendar day.</p>
+                <div className="space-y-4 text-xs sm:text-sm text-gray-700 leading-relaxed font-mono">
+                  <div className="p-4 bg-gray-900 text-gray-100 rounded-xl border border-gray-800 space-y-2 overflow-x-auto">
+                    <div className="text-[11px] text-[#3ECE92] uppercase font-bold tracking-wider">
+                      Execution Blueprint & Standard Operating Procedure
+                    </div>
+                    <pre className="text-xs text-gray-300 font-mono whitespace-pre-wrap">
+{`# AI-Native Architecture: ${currentLesson?.title}
+# Module: ${currentParentModule?.title}
+
+1. Objective:
+   - Convert institutional intent into deterministic, machine-actionable instructions.
+   - Anchor reasoning models within structured input/output JSON schemas.
+
+2. Execution Protocols:
+   - System prompts must isolate role boundaries and tool permissions.
+   - Guardrails prevent hallucination escape vectors and enforce schema validation.
+   - Continuous evaluation telemetry benchmarks performance against shadow human runs.`}
+                    </pre>
+                  </div>
                 </div>
               )}
 
+              {/* Tab 3: Downloads & Materials */}
               {activeTab === 'resources' && (
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
-                    <div className="flex items-center gap-3">
-                      <FileText className="w-4 h-4 text-[#3ECE92]" />
-                      <span className="text-xs font-semibold text-gray-800">Lecture_Slides_Week1.pdf</span>
+                <div className="space-y-3">
+                  {currentLesson?.resources && currentLesson.resources.length > 0 ? (
+                    currentLesson.resources.map((res, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between p-3.5 rounded-xl border border-[#eaedf0] hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">
+                            <FileText className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-gray-800">{res.name}</p>
+                            <p className="text-[10px] text-gray-400 font-mono">{res.size || '2.4 MB'} • Downloadable Artifact</p>
+                          </div>
+                        </div>
+
+                        <a
+                          href={res.url}
+                          download
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-100 transition-colors"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Download</span>
+                        </a>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-6 text-center text-gray-400 text-xs">
+                      All core frameworks are integrated in the overview.
                     </div>
-                    <button className="text-xs font-semibold text-[#059669] hover:underline flex items-center gap-1">
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Download</span>
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
-                    <div className="flex items-center gap-3">
-                      <FileText className="w-4 h-4 text-[#3ECE92]" />
-                      <span className="text-xs font-semibold text-gray-800">Academic_Policies_Handbook.pdf</span>
-                    </div>
-                    <button className="text-xs font-semibold text-[#059669] hover:underline flex items-center gap-1">
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Download</span>
-                    </button>
-                  </div>
+                  )}
                 </div>
               )}
 
+              {/* Tab 4: Faculty Q&A */}
               {activeTab === 'discussion' && (
                 <div className="space-y-4">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Ask the faculty or peers a question..."
-                      className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#3ECE92]"
+                  {qaFeedback && (
+                    <div className="p-3 bg-emerald-50 text-emerald-800 rounded-xl text-xs font-medium border border-emerald-200 flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>{qaFeedback}</span>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSendQuestion} className="space-y-3">
+                    <textarea
+                      rows={3}
+                      value={questionText}
+                      onChange={(e) => setQuestionText(e.target.value)}
+                      placeholder="Ask Admin Faculty a question about this lesson or framework..."
+                      className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#3ECE92]"
                     />
-                    <button className="bg-[#121614] text-white px-4 py-2 rounded-xl text-xs font-semibold">
-                      Post
-                    </button>
-                  </div>
-                  <div className="text-xs text-gray-400 text-center py-4">
-                    No questions posted yet for this lesson. Be the first to start the discussion!
-                  </div>
+                    <div className="flex justify-end">
+                      <button
+                        type="submit"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#121614] hover:bg-black shadow-xs transition-all"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Submit Question</span>
+                      </button>
+                    </div>
+                  </form>
                 </div>
               )}
             </div>
@@ -244,52 +356,72 @@ export default function CourseDetailPage() {
           {/* Curriculum Sidebar (1 Col) */}
           <div className="space-y-4">
             <div className="bg-white rounded-2xl border border-[#eaedf0] p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-              <h3 className="text-sm font-bold text-gray-900 mb-3">
-                Course Syllabus
-              </h3>
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                <div>
+                  <h3 className="font-bold text-sm text-gray-900">Program Syllabus</h3>
+                  <p className="text-[11px] text-gray-400 font-mono">
+                    {completedLessonsCount} / {totalLessons} units complete
+                  </p>
+                </div>
+                <span className="text-xs font-mono font-bold text-[#059669] bg-[#e8f8f0] px-2.5 py-1 rounded-md">
+                  {courseProgress}%
+                </span>
+              </div>
 
-              <div className="space-y-4">
+              {/* Module Accordions */}
+              <div className="mt-4 space-y-4 max-h-[640px] overflow-y-auto pr-1">
                 {modules.map((mod) => (
-                  <div key={mod.id} className="space-y-2">
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      {mod.title}
-                    </h4>
+                  <div key={mod.id} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-mono font-bold text-gray-700 bg-gray-50 px-2.5 py-1.5 rounded-lg border border-gray-100">
+                      <span>Module {mod.moduleNumber}: {mod.title}</span>
+                      <span className="text-[10px] text-gray-400">{mod.weeks}</span>
+                    </div>
 
-                    <div className="space-y-1">
-                      {mod.lessons.map((lesson) => {
-                        const isCurrent = lesson.id === activeLessonId;
-                        const isCompleted = completedLessonIds.includes(lesson.id);
+                    <div className="space-y-1 pl-1">
+                      {mod.submodules.map((lesson) => {
+                        const isActive = lesson.id === activeLessonId;
+                        const isDone = isLessonCompleted(lesson.id);
 
                         return (
-                          <div
+                          <button
                             key={lesson.id}
-                            onClick={() => setActiveLessonId(lesson.id)}
-                            className={`p-3 rounded-xl flex items-center justify-between cursor-pointer transition-all ${
-                              isCurrent
-                                ? 'bg-[#e8f8f0] text-[#059669] font-semibold border border-[#d1f4e2]'
+                            onClick={() => {
+                              setActiveLessonId(lesson.id);
+                              router.replace(`/courses/${activeCourse.id}?lesson=${lesson.id}`);
+                            }}
+                            className={`w-full text-left p-2.5 rounded-xl text-xs transition-all flex items-center justify-between gap-2 ${
+                              isActive
+                                ? 'bg-[#121614] text-white shadow-sm font-semibold'
                                 : 'hover:bg-gray-50 text-gray-700'
                             }`}
                           >
-                            <div className="flex items-center gap-2.5">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleLessonComplete(lesson.id);
-                                }}
-                                className="text-gray-400 hover:text-[#3ECE92]"
-                              >
-                                {isCompleted ? (
-                                  <CheckCircle className="w-4 h-4 text-[#3ECE92] fill-[#3ECE92]/20" />
-                                ) : (
-                                  <Circle className="w-4 h-4" />
-                                )}
-                              </button>
-                              <span className="text-xs line-clamp-1">{lesson.title}</span>
+                            <div className="flex items-center gap-2 truncate">
+                              {isDone ? (
+                                <CheckCircle
+                                  className={`w-3.5 h-3.5 shrink-0 ${
+                                    isActive ? 'text-[#3ECE92]' : 'text-emerald-600'
+                                  }`}
+                                />
+                              ) : (
+                                <Circle
+                                  className={`w-3.5 h-3.5 shrink-0 ${
+                                    isActive ? 'text-gray-400' : 'text-gray-300'
+                                  }`}
+                                />
+                              )}
+                              <span className="truncate">
+                                {lesson.subpartCode} {lesson.title}
+                              </span>
                             </div>
-                            <span className="text-[10px] font-mono text-gray-400 shrink-0 ml-2">
+
+                            <span
+                              className={`text-[10px] font-mono shrink-0 ${
+                                isActive ? 'text-gray-400' : 'text-gray-400'
+                              }`}
+                            >
                               {lesson.duration}
                             </span>
-                          </div>
+                          </button>
                         );
                       })}
                     </div>

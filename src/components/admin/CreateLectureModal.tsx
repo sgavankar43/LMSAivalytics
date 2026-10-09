@@ -32,8 +32,8 @@ export const CreateLectureModal: React.FC<CreateLectureModalProps> = ({
   const { createLecture } = useAttendance();
 
   const [title, setTitle] = useState('');
-  const [course, setCourse] = useState('Applied AI Systems');
-  const [instructor, setInstructor] = useState(user?.name || 'Prof. Marcus Vance');
+  const [course, setCourse] = useState('AI-Native Project Management');
+  const [instructor, setInstructor] = useState(user?.name || 'Admin Faculty');
   const [meetingUrl, setMeetingUrl] = useState(TEST_GMEET_URL);
   const [isLiveNow, setIsLiveNow] = useState(true);
   const [durationMinutes, setDurationMinutes] = useState(60);
@@ -123,10 +123,10 @@ export const CreateLectureModal: React.FC<CreateLectureModalProps> = ({
                 onChange={(e) => setCourse(e.target.value)}
                 className="w-full text-xs p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#3ECE92] bg-white"
               >
-                <option value="Applied AI Systems">Applied AI Systems</option>
-                <option value="Business Research Method">Business Research Method</option>
-                <option value="Academic Information">Academic Information</option>
-                <option value="Quantitative Modeling">Quantitative Modeling</option>
+                <option value="AI-Native Project Management">AI-Native Project Management (AINPM-101)</option>
+                <option value="Module 1: AI Foundations">Module 1: AI Foundations</option>
+                <option value="Module 2: AI Agents & Orchestration">Module 2: AI Agents & Orchestration</option>
+                <option value="Module 3: AI-Native Project Management">Module 3: AI-Native Project Management</option>
               </select>
             </div>
 

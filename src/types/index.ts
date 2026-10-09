@@ -59,6 +59,34 @@ export interface WeeklyActivity {
   hours: number;
 }
 
+export interface CourseSubmodule {
+  id: string;
+  moduleId: string;
+  subpartCode: string; // e.g. '1.1', '1.2'
+  title: string;
+  description: string;
+  duration: string; // e.g. '45m'
+  videoUrl?: string;
+  type?: 'video' | 'interactive' | 'challenge' | 'reading';
+  isCompleted?: boolean;
+  order: number;
+  takeaways?: string[];
+  resources?: Array<{ name: string; url: string; size?: string }>;
+}
+
+export interface CurriculumModule {
+  id: string;
+  courseId: string;
+  moduleNumber: number;
+  title: string;
+  subtitle: string;
+  weeks: string;
+  certificationName?: string;
+  order: number;
+  status: 'active' | 'upcoming' | 'completed';
+  submodules: CourseSubmodule[];
+}
+
 export interface Course {
   id: string;
   title: string;
@@ -76,7 +104,11 @@ export interface Course {
   thumbnail?: string;
   nextLesson?: string;
   enrolledStudentsCount?: number;
+  modules?: CurriculumModule[];
 }
+
+export type DetailedCourse = Course;
+
 
 export type TicketStatus = 'Open' | 'Under Review' | 'Completed' | 'Rejected' | 'In Progress' | 'Resolved';
 export type TicketCategory = 'Academic' | 'Technical' | 'Evaluation' | 'General';

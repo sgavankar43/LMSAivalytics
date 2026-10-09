@@ -16,9 +16,9 @@ import {
 
 export default function PerformancePage() {
   const grades = [
-    { course: 'Academic Information & Governance', quiz: '92%', assignment: '88%', exam: '94%', overall: '91.3%' },
-    { course: 'Business Research Methodologies', quiz: '85%', assignment: '82%', exam: 'Pending', overall: '83.5%' },
-    { course: 'Applied AI & Neural Analytics', quiz: '96%', assignment: '90%', exam: 'Pending', overall: '93.0%' },
+    { course: 'Module 1: AI Foundations', quiz: '96%', assignment: '94%', exam: '96%', overall: '95.3%' },
+    { course: 'Module 2: AI Agents & Orchestration', quiz: '88%', assignment: '85%', exam: 'Active', overall: '86.5%' },
+    { course: 'Module 3: AI-Native Project Management', quiz: 'Upcoming', assignment: 'Upcoming', exam: 'Upcoming', overall: 'Pending' },
   ];
 
   return (

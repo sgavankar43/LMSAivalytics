@@ -59,7 +59,7 @@ export const initialSessionAttendances: Record<string, SessionAttendance> = {
   sess_1: {
     sessionId: 'sess_1',
     sessionTitle: 'Orientation & Program Overview',
-    course: 'Academic Information',
+    course: 'AI-Native Project Management',
     date: 'Aug 04, 2026',
     time: '10:00 AM - 11:30 AM',
     lastUpdated: 'Aug 04, 2026 • 12:00 PM',
@@ -155,7 +155,7 @@ export const initialSessionAttendances: Record<string, SessionAttendance> = {
   sess_2: {
     sessionId: 'sess_2',
     sessionTitle: 'Session 1: Academic Policies',
-    course: 'Academic Information',
+    course: 'AI-Native Project Management',
     date: 'Aug 11, 2026',
     time: '02:00 PM - 03:15 PM',
     lastUpdated: 'Aug 11, 2026 • 03:30 PM',
@@ -251,7 +251,7 @@ export const initialSessionAttendances: Record<string, SessionAttendance> = {
   sess_3: {
     sessionId: 'sess_3',
     sessionTitle: 'Session 2: Grading & Evaluation',
-    course: 'Academic Information',
+    course: 'AI-Native Project Management',
     date: 'Aug 18, 2026',
     time: '11:00 AM - 12:30 PM',
     lastUpdated: 'Aug 18, 2026 • 01:00 PM',
@@ -347,7 +347,7 @@ export const initialSessionAttendances: Record<string, SessionAttendance> = {
   sess_4: {
     sessionId: 'sess_4',
     sessionTitle: 'Session 1: Intro to Research Design',
-    course: 'Business Research Method',
+    course: 'AI-Native Project Management',
     date: 'Aug 22, 2026',
     time: '04:00 PM - 05:30 PM',
     lastUpdated: 'Aug 22, 2026 • 06:00 PM',
@@ -443,7 +443,7 @@ export const initialSessionAttendances: Record<string, SessionAttendance> = {
   sess_5: {
     sessionId: 'sess_5',
     sessionTitle: 'Session 2: Research Hypotheses & Variables',
-    course: 'Business Research Method',
+    course: 'AI-Native Project Management',
     date: 'Aug 25, 2026',
     time: '02:00 PM - 03:30 PM',
     lastUpdated: 'Aug 25, 2026 • 04:00 PM',
@@ -539,7 +539,7 @@ export const initialSessionAttendances: Record<string, SessionAttendance> = {
   sess_6: {
     sessionId: 'sess_6',
     sessionTitle: 'Session 1: AI Foundations & Context Engineering',
-    course: 'Applied AI & Neural Analytics',
+    course: 'AI-Native Project Management',
     date: 'Aug 29, 2026',
     time: '11:00 AM - 12:45 PM',
     lastUpdated: 'Aug 29, 2026 • 01:15 PM',

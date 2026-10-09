@@ -358,11 +358,11 @@ export default function AttendancePage() {
                   onChange={(e) => setCourseFilter(e.target.value)}
                   className="text-xs px-3 py-2 rounded-xl border border-gray-200 bg-[#fafbfb] text-gray-700 font-medium focus:outline-none focus:border-[#3ECE92]"
                 >
-                  <option value="All">All Courses</option>
-                  <option value="Academic">Academic Information</option>
-                  <option value="Research">Research Methods</option>
-                  <option value="Applied">Applied AI</option>
-                  <option value="AI-Native">AI-Native PM</option>
+                  <option value="All">All Modules</option>
+                  <option value="AI-Native Project Management">AI-Native Project Management (AINPM-101)</option>
+                  <option value="Module 1">Module 1: AI Foundations</option>
+                  <option value="Module 2">Module 2: AI Agents & Orchestration</option>
+                  <option value="Module 3">Module 3: AI-Native Project Management</option>
                 </select>
               </>
             )}
@@ -644,9 +644,9 @@ export default function AttendancePage() {
                     className="w-full text-xs p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#3ECE92] bg-white text-gray-800"
                   >
                     <option value="AI-Native Project Management">AI-Native Project Management (Flagship)</option>
-                    <option value="Academic Information">Academic Information & Governance</option>
-                    <option value="Business Research Method">Business Research Methodologies</option>
-                    <option value="Applied AI & Neural Analytics">Applied AI & Neural Analytics</option>
+                    <option value="Module 1: AI Foundations">Module 1: AI Foundations</option>
+                    <option value="Module 2: AI Agents & Orchestration">Module 2: AI Agents & Orchestration</option>
+                    <option value="Module 3: AI-Native Project Management">Module 3: AI-Native Project Management</option>
                   </select>
                 </div>
 
