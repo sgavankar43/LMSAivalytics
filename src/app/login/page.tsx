@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, ChevronRight, Eye, EyeOff, ShieldCheck, UserCheck } from 'lucide-react';
+import { Mail, Lock, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { Logo } from '@/components/common/Logo';
 import { useAuth } from '@/context/AuthContext';
 
@@ -40,13 +40,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleQuickFill = (userEmail: string) => {
-    setErrorMsg('');
-    setInfoMsg('');
-    setEmail(userEmail);
-    setPassword('password123');
-  };
-
   return (
     <div className="min-h-screen bg-[#f8faf9] flex items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-[430px] bg-white rounded-3xl p-8 sm:p-10 border border-[#eaedf0] shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
@@ -55,7 +48,7 @@ export default function LoginPage() {
           <Logo size="md" />
         </div>
 
-        {/* Pill Segmented Switcher (Sign Up kept aside per instructions) */}
+        {/* Pill Segmented Switcher */}
         <div className="bg-[#f1f3f2] p-1 rounded-full flex items-center mb-6">
           <button
             type="button"
@@ -66,7 +59,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => {
-              setInfoMsg('New student registration is currently by faculty invitation only. Please use the credentials below.');
+              setInfoMsg('New student registration is currently by faculty invitation only. Please contact your program administrator or faculty coordinator to receive your login credentials.');
               setErrorMsg('');
             }}
             className="flex-1 py-2 text-xs font-semibold rounded-full text-gray-400 hover:text-gray-600 transition-colors"
@@ -144,55 +137,6 @@ export default function LoginPage() {
             </button>
           </div>
         </form>
-
-        {/* Test Credentials & Seed User Helpers */}
-        <div className="mt-8 text-center border-t border-gray-100 pt-5">
-          <p className="text-[11px] text-gray-400 leading-relaxed max-w-[290px] mx-auto">
-            Connected to live Supabase Auth. Click below to test with pre-seeded accounts:
-          </p>
-
-          <div className="mt-3.5 grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => handleQuickFill('admin@aivalytics.com')}
-              className="text-[11px] font-semibold text-gray-700 hover:text-[#059669] bg-gray-50 hover:bg-[#e8f8f0] px-2.5 py-1.5 rounded-lg transition-colors border border-gray-200 flex items-center justify-center gap-1.5"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-[#3ECE92]" />
-              <span>Faculty Admin</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickFill('alex.morgan@aivalytics.com')}
-              className="text-[11px] font-semibold text-gray-700 hover:text-[#059669] bg-gray-50 hover:bg-[#e8f8f0] px-2.5 py-1.5 rounded-lg transition-colors border border-gray-200 flex items-center justify-center gap-1.5"
-            >
-              <UserCheck className="w-3.5 h-3.5 text-[#3ECE92]" />
-              <span>Alex Morgan</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickFill('sarah.connor@aivalytics.com')}
-              className="text-[11px] font-semibold text-gray-700 hover:text-[#059669] bg-gray-50 hover:bg-[#e8f8f0] px-2.5 py-1.5 rounded-lg transition-colors border border-gray-200 flex items-center justify-center gap-1.5"
-            >
-              <UserCheck className="w-3.5 h-3.5 text-[#3ECE92]" />
-              <span>Sarah Connor</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickFill('david.miller@aivalytics.com')}
-              className="text-[11px] font-semibold text-gray-700 hover:text-[#059669] bg-gray-50 hover:bg-[#e8f8f0] px-2.5 py-1.5 rounded-lg transition-colors border border-gray-200 flex items-center justify-center gap-1.5"
-            >
-              <UserCheck className="w-3.5 h-3.5 text-[#3ECE92]" />
-              <span>David Miller</span>
-            </button>
-          </div>
-
-          <p className="text-[10px] font-mono text-gray-400 mt-2.5">
-            Password: password123
-          </p>
-        </div>
       </div>
     </div>
   );

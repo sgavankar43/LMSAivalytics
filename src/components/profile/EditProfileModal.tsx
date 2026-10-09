@@ -20,16 +20,21 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 }) => {
   const { updateUser } = useAuth();
 
-  const [name, setName] = useState(user?.name || 'Alex Morgan');
-  const [headline, setHeadline] = useState(
-    user?.headline || 'AI-Native Project Manager & Operations Specialist'
-  );
-  const [phone, setPhone] = useState(user?.phone || '+1 (555) 382-9102');
-  const [location, setLocation] = useState(user?.location || 'San Francisco, CA (PST)');
-  const [bio, setBio] = useState(
-    user?.bio ||
-      'Product and operations leader transitioning to AI-native workflow automation. Currently completing the 3-Month AI-Native Project Management executive certification program.'
-  );
+  const [name, setName] = useState(user?.name || '');
+  const [headline, setHeadline] = useState(user?.headline || '');
+  const [phone, setPhone] = useState(user?.phone || '');
+  const [location, setLocation] = useState(user?.location || '');
+  const [bio, setBio] = useState(user?.bio || '');
+
+  React.useEffect(() => {
+    if (user && isOpen) {
+      setName(user.name || '');
+      setHeadline(user.headline || '');
+      setPhone(user.phone || '');
+      setLocation(user.location || '');
+      setBio(user.bio || '');
+    }
+  }, [user, isOpen]);
 
   if (!isOpen) return null;
 

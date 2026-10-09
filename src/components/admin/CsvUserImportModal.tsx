@@ -12,6 +12,7 @@ import {
   X,
   UserPlus,
   Users,
+  Key,
 } from 'lucide-react';
 
 interface CsvUserImportModalProps {
@@ -24,6 +25,7 @@ interface ParsedRow {
   id: string;
   fullName: string;
   email: string;
+  password?: string;
   courseCode: string;
   courseName: string;
   term: string;
@@ -116,6 +118,9 @@ export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
       let emailIdx = headerParts.findIndex(
         (h) => h === 'email' || h === 'emailaddress'
       );
+      let passwordIdx = headerParts.findIndex(
+        (h) => h === 'password' || h === 'pass' || h === 'pwd' || h === 'loginpassword' || h === 'credential'
+      );
       let codeIdx = headerParts.findIndex(
         (h) => h === 'coursecode' || h === 'code'
       );
@@ -135,7 +140,17 @@ export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
       // Fallback positional indexing if header doesn't specify explicit column names
       const firstRowParts = parseCsvLine(lines[1]);
       if (nameIdx === -1 && emailIdx === -1) {
-        if (firstRowParts.length >= 8) {
+        if (firstRowParts.length >= 9) {
+          idIdx = 0;
+          nameIdx = 1;
+          emailIdx = 2;
+          passwordIdx = 3;
+          codeIdx = 4;
+          courseNameIdx = 5;
+          termIdx = 6;
+          statusIdx = 7;
+          dateIdx = 8;
+        } else if (firstRowParts.length >= 8) {
           idIdx = 0;
           nameIdx = 1;
           emailIdx = 2;
@@ -162,6 +177,10 @@ export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
         if (parts.length >= 2) {
           const email = emailIdx !== -1 && parts[emailIdx] ? parts[emailIdx] : '';
           const fullName = nameIdx !== -1 && parts[nameIdx] ? parts[nameIdx] : 'Learner';
+          const rawPassword = passwordIdx !== -1 && parts[passwordIdx] ? parts[passwordIdx].trim() : '';
+          // Ensure every student has an assigned password for their login credentials
+          const cleanName = fullName.replace(/[^a-zA-Z0-9]/g, '');
+          const password = rawPassword || `Pass@${cleanName || 'Student'}2026`;
           const courseCode = codeIdx !== -1 && parts[codeIdx] ? parts[codeIdx] : 'AINPM-101';
           const courseName =
             courseNameIdx !== -1 && parts[courseNameIdx]
@@ -180,6 +199,7 @@ export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
             id,
             fullName,
             email,
+            password,
             courseCode,
             courseName,
             term,
@@ -206,6 +226,7 @@ export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
       id: r.id,
       fullName: r.fullName,
       email: r.email,
+      password: r.password,
       courseCode: r.courseCode,
       courseName: r.courseName || 'Core Curriculum',
       term: r.term,
@@ -267,7 +288,7 @@ export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
                 <p className="text-[11px] text-gray-500 overflow-x-auto whitespace-nowrap">
                   Headers:{' '}
                   <code className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border text-[#059669]">
-                    Student ID,Full Name,Email,Course Code,Course Name,Term,Status,Enrolled Date
+                    Student ID,Full Name,Email,Password,Course Code,Course Name,Term,Status,Enrolled Date
                   </code>
                 </p>
               </div>
@@ -295,7 +316,7 @@ export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
                 {fileName ? fileName : 'Click or drag & drop CSV file to upload'}
               </p>
               <p className="text-[10px] text-gray-400 mt-1">
-                Supports standard 8-field exported rosters & comma-separated UTF-8 values (.csv)
+                Supports standard 9-field exported rosters with passwords & comma-separated UTF-8 values (.csv)
               </p>
             </div>
 
@@ -318,6 +339,7 @@ export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
                         <th className="py-2 px-3">Student ID</th>
                         <th className="py-2 px-3">Full Name</th>
                         <th className="py-2 px-3">Email Address</th>
+                        <th className="py-2 px-3">Password</th>
                         <th className="py-2 px-3">Course Code</th>
                         <th className="py-2 px-3">Term</th>
                         <th className="py-2 px-3">Enrolled Date</th>
@@ -330,6 +352,11 @@ export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
                           <td className="py-2 px-3 font-mono text-gray-500 text-[11px]">{row.id}</td>
                           <td className="py-2 px-3 font-semibold text-gray-900">{row.fullName}</td>
                           <td className="py-2 px-3 font-mono text-gray-600">{row.email}</td>
+                          <td className="py-2 px-3 font-mono text-gray-700 text-[11px]">
+                            <span className="bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[10px]">
+                              {row.password}
+                            </span>
+                          </td>
                           <td className="py-2 px-3 font-mono text-gray-700">{row.courseCode}</td>
                           <td className="py-2 px-3 text-gray-500">{row.term}</td>
                           <td className="py-2 px-3 text-gray-400 font-mono text-[11px]">{row.enrolledAt}</td>

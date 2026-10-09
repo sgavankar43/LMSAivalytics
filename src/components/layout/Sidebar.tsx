@@ -271,12 +271,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className={`pt-6 border-t border-[#eaedf0] ${collapsed ? 'px-1' : 'px-2'}`}>
         {!collapsed && (
           isAdmin ? (
-            <div className="flex items-center gap-2.5 p-2 rounded-xl bg-gray-50/80 border border-gray-100 mb-3">
-              <div className="w-8 h-8 rounded-full bg-[#121614] text-[#3ECE92] flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+            <Link
+              href="/profile"
+              className="flex items-center gap-2.5 p-2 rounded-xl bg-gray-50/80 hover:bg-gray-100/80 border border-gray-100 mb-3 transition-colors group cursor-pointer"
+              title="View Faculty Profile"
+            >
+              <div className="w-8 h-8 rounded-full bg-[#121614] text-[#3ECE92] flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
                 {user?.initials || 'AF'}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-gray-900 truncate">
+                <p className="text-xs font-bold text-gray-900 truncate group-hover:text-[#059669] transition-colors">
                   {user?.name || 'Admin Faculty'}
                 </p>
                 <p className="text-[10px] text-purple-700 font-semibold capitalize truncate flex items-center gap-1">
@@ -284,7 +288,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <span>Faculty / Administrator</span>
                 </p>
               </div>
-            </div>
+            </Link>
           ) : (
             <Link
               href="/profile"

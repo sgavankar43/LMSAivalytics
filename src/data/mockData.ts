@@ -23,7 +23,6 @@ export const mockUser: User = {
   location: 'San Francisco, CA (PST)',
   joinedDate: 'August 01, 2026',
   department: 'Executive AI Academy',
-  gpa: '3.84 / 4.0',
   bio: 'Product and operations leader transitioning to AI-native workflow automation. Currently completing the 3-Month AI-Native Project Management executive certification program with a focus on autonomous agent orchestration and GTM delivery.',
 };
 
@@ -96,7 +95,6 @@ export const mockAdminUser: User = {
   location: 'Boston, MA (EST)',
   joinedDate: 'January 15, 2025',
   department: 'Academic Governance & AI Research',
-  gpa: 'N/A (Faculty Administrator)',
   bio: 'Directing curriculum development, faculty coordination, and student evaluation across the AIvalytics LMS executive program. Focused on institutional rigor and real-world AI project milestones.',
 };
 

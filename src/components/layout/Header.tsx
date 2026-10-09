@@ -6,11 +6,6 @@ import {
   Bell,
   BellRing,
   Menu,
-  ChevronDown,
-  ShieldCheck,
-  UserCheck,
-  User,
-  ChevronRight,
   LogOut,
   X,
   Video,
@@ -24,7 +19,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
-  const { user, signOut, switchRole } = useAuth();
+  const { user, signOut } = useAuth();
   const {
     notifications,
     unreadCount,
@@ -37,7 +32,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
   } = useNotifications();
 
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   return (
     <header className="sticky top-0 z-20 bg-[#f8faf9]/95 backdrop-blur-md border-b border-[#eaedf0] px-4 sm:px-8 py-3.5 flex items-center justify-between">
@@ -61,10 +55,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
         {/* Notification Bell */}
         <div className="relative">
           <button
-            onClick={() => {
-              setShowNotifications(!showNotifications);
-              setShowProfileMenu(false);
-            }}
+            onClick={() => setShowNotifications(!showNotifications)}
             className="relative p-2 rounded-full text-gray-600 hover:text-gray-900 hover:bg-[#ebedec] transition-colors"
             aria-label="Notifications"
             title={`${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}`}
@@ -280,105 +271,30 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
           </div>
         )}
 
-        {/* User Pill Badge */}
-        <div className="relative">
-          <button
-            onClick={() => {
-              setShowProfileMenu(!showProfileMenu);
-              setShowNotifications(false);
-            }}
-            className="flex items-center gap-2.5 p-1 rounded-full hover:bg-gray-100/70 transition-colors"
-          >
-            <div className="w-8 h-8 rounded-full bg-[#3ECE92] text-[#121614] flex items-center justify-center font-bold text-xs shadow-xs">
-              {user?.initials || 'AM'}
-            </div>
-            <span className="text-sm font-semibold text-gray-800 hidden sm:inline-block">
-              {user?.name || 'Alex Morgan'}
-            </span>
-            <ChevronDown className="w-3.5 h-3.5 text-gray-400 hidden sm:inline-block" />
-          </button>
+        {/* User Profile Avatar Link - Clicking redirects to the profile page */}
+        <Link
+          href="/profile"
+          className="flex items-center gap-2.5 p-1 sm:pr-3 rounded-full hover:bg-gray-100 transition-colors border border-transparent hover:border-gray-200 group"
+          title="View My Profile"
+        >
+          <div className="w-8 h-8 rounded-full bg-[#3ECE92] text-[#121614] flex items-center justify-center font-bold text-xs shadow-xs group-hover:scale-105 transition-transform">
+            {user?.initials || 'LM'}
+          </div>
+          <span className="text-sm font-semibold text-gray-800 hidden sm:inline-block group-hover:text-[#059669] transition-colors">
+            {user?.name || 'Profile'}
+          </span>
+        </Link>
 
-          {showProfileMenu && (
-            <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-3 py-2 border-b border-gray-100 mb-1">
-                <p className="text-xs font-semibold text-gray-900">{user?.name || 'Alex Morgan'}</p>
-                <p className="text-[11px] text-gray-500 truncate">{user?.email || 'alex.morgan@aivalytics.com'}</p>
-                <div className="mt-1 flex items-center gap-1.5">
-                  <span className="text-[10px] font-medium bg-[#e8f8f0] text-[#059669] px-2 py-0.5 rounded-full capitalize">
-                    {user?.role || 'Learner'} Account
-                  </span>
-                </div>
-              </div>
-
-              {/* Direct Profile Link (Learners only) */}
-              {user?.role !== 'admin' && (
-                <div className="p-1 border-b border-gray-100 mb-1">
-                  <Link
-                    href="/profile"
-                    onClick={() => setShowProfileMenu(false)}
-                    className="w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold text-gray-800 hover:bg-[#e8f8f0] hover:text-[#059669] transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <User className="w-3.5 h-3.5 text-[#3ECE92]" />
-                      <span>My Profile & Certifications</span>
-                    </div>
-                    <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-                  </Link>
-                </div>
-              )}
-
-              {/* Role Switcher Demo Control */}
-              <div className="px-2 py-1.5">
-                <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-1">
-                  Preview Role
-                </span>
-                <div className="mt-1 space-y-1">
-                  <button
-                    onClick={() => {
-                      switchRole('learner');
-                      setShowProfileMenu(false);
-                    }}
-                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-left transition-colors ${
-                      user?.role === 'learner'
-                        ? 'bg-[#e8f8f0] text-[#059669]'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    <UserCheck className="w-3.5 h-3.5" />
-                    <span>Learner (Alex Morgan)</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      switchRole('admin');
-                      setShowProfileMenu(false);
-                    }}
-                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-left transition-colors ${
-                      user?.role === 'admin'
-                        ? 'bg-[#e8f8f0] text-[#059669]'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>Faculty / Admin</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="border-t border-gray-100 pt-1 mt-1">
-                <button
-                  onClick={() => {
-                    setShowProfileMenu(false);
-                    signOut();
-                  }}
-                  className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>Log out</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Header Log out button */}
+        <button
+          type="button"
+          onClick={() => signOut()}
+          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+          title="Log out"
+          aria-label="Log out"
+        >
+          <LogOut className="w-4 h-4" />
+        </button>
       </div>
     </header>
   );

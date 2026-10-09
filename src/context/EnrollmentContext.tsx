@@ -93,11 +93,12 @@ export const EnrollmentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const exportStudentsToCsv = () => {
     if (typeof window === 'undefined') return;
 
-    const headers = ['Student ID', 'Full Name', 'Email', 'Course Code', 'Course Name', 'Term', 'Status', 'Enrolled Date'];
+    const headers = ['Student ID', 'Full Name', 'Email', 'Password', 'Course Code', 'Course Name', 'Term', 'Status', 'Enrolled Date'];
     const rows = students.map((s) => [
       `"${s.id}"`,
       `"${s.fullName}"`,
       `"${s.email}"`,
+      `"${s.password || 'password123'}"`,
       `"${s.courseCode}"`,
       `"${s.courseName}"`,
       `"${s.term}"`,

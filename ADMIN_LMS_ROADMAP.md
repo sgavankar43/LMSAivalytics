@@ -132,7 +132,7 @@ This document tracks all features, data structures, and implementation phases fo
 ### 10. User Profile & Credential Management Scope
 - [x] **Learner Profile (`/profile`)**:
   - Student identity hero (Name, student ID, bio, contact details, cohort).
-  - Academic KPIs: Cumulative GPA, live attendance %, active syllabi, earned certifications.
+  - Academic KPIs: Live attendance %, enrolled program course, earned certifications.
   - "My Courses" section with progress tracking and direct resume link.
   - "Program Certifications" section with official verified certificates and interactive modal.
   - Real-time "Edit Profile" modal.

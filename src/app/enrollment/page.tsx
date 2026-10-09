@@ -26,6 +26,8 @@ import {
   AlertCircle,
   MoreVertical,
   Check,
+  Key,
+  Copy,
 } from 'lucide-react';
 
 export default function EnrollmentPage() {
@@ -75,6 +77,13 @@ export default function EnrollmentPage() {
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  const handleCopyPassword = (pwd: string, name: string) => {
+    if (typeof window !== 'undefined') {
+      navigator.clipboard.writeText(pwd);
+      showToast(`Copied password for ${name} to clipboard.`);
+    }
   };
 
   const handleImportSuccess = (newStudents: ImportedStudent[]) => {
@@ -328,6 +337,7 @@ export default function EnrollmentPage() {
                 <tr className="border-b border-gray-100 bg-[#f8faf9]/70 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                   <th className="py-3.5 px-6">Student Information</th>
                   <th className="py-3.5 px-6">Student ID</th>
+                  <th className="py-3.5 px-6">Login Password</th>
                   <th className="py-3.5 px-6">Course Allocation</th>
                   <th className="py-3.5 px-6">Cohort Term</th>
                   <th className="py-3.5 px-6">Enrolled Date</th>
@@ -338,7 +348,7 @@ export default function EnrollmentPage() {
               <tbody className="divide-y divide-gray-100 text-xs">
                 {filteredStudents.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center">
+                    <td colSpan={8} className="py-12 text-center">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <Users className="w-8 h-8 text-gray-300" />
                         <p className="text-sm font-semibold text-gray-600">No student enrollment records found</p>
@@ -383,6 +393,23 @@ export default function EnrollmentPage() {
                         {/* Student ID */}
                         <td className="py-4 px-6 font-mono text-[11px] text-gray-500">
                           {student.id.toUpperCase()}
+                        </td>
+
+                        {/* Login Password */}
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono text-[11px] bg-gray-100 text-gray-700 px-2 py-0.5 rounded border border-gray-200">
+                              {student.password || 'password123'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyPassword(student.password || 'password123', student.fullName)}
+                              className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                              title="Copy student password"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
 
                         {/* Course Code & Name */}

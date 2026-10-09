@@ -738,7 +738,7 @@ export default function AttendancePage() {
 
                     <div className="my-4 p-4 rounded-2xl bg-[#f8faf9] border border-gray-200/80 flex items-center justify-between">
                       <div>
-                        <span className="text-xs text-gray-500">Cumulative Attendance</span>
+                        <span className="text-xs text-gray-500">Overall Attendance</span>
                         <p className="text-xl font-extrabold text-gray-900 mt-0.5">
                           {stats.percentage}%
                         </p>

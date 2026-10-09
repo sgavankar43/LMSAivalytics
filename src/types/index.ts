@@ -16,7 +16,6 @@ export interface User {
   studentId?: string;
   department?: string;
   joinedDate?: string;
-  gpa?: string;
 }
 
 export interface MetricCardData {
@@ -179,6 +178,7 @@ export interface ImportedStudent {
   id: string;
   fullName: string;
   email: string;
+  password?: string;
   courseCode: string;
   courseName: string;
   term: string;

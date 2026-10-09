@@ -48,7 +48,7 @@ export interface SearchItem {
 
 export const GlobalSearchBar: React.FC = () => {
   const router = useRouter();
-  const { user, switchRole } = useAuth();
+  const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -119,7 +119,7 @@ export const GlobalSearchBar: React.FC = () => {
     {
       id: 'page_profile_learner',
       title: 'My Profile & Academic Credentials',
-      description: 'Student identity, GPA, enrolled cohort, and verified certificates',
+      description: 'Student identity, enrolled cohort, attendance, and verified certificates',
       category: 'Pages',
       href: '/profile',
       keywords: ['profile', 'account', 'student id', 'bio', 'credentials', 'certifications', 'alex morgan', 'settings'],
@@ -341,19 +341,6 @@ export const GlobalSearchBar: React.FC = () => {
       recommended: true,
       allowedRoles: ['admin'],
     },
-    {
-      id: 'action_switch_to_learner',
-      title: 'Switch to Learner View (Alex Morgan)',
-      description: 'Simulate learner perspective to verify student experience and submissions',
-      category: 'Actions',
-      action: () => switchRole('learner'),
-      keywords: ['switch role', 'learner view', 'alex morgan', 'preview student', 'simulate learner'],
-      icon: RefreshCw,
-      badge: 'Role Toggle',
-      badgeColor: 'bg-purple-100 text-purple-800 border-purple-200',
-      recommended: true,
-      allowedRoles: ['admin'],
-    },
 
     // ==========================================
     // 3. SHARED ACADEMIC RESOURCES (Learner & Admin)
@@ -378,10 +365,10 @@ export const GlobalSearchBar: React.FC = () => {
       title: 'Performance & Progress Analytics',
       description: currentRole === 'admin'
         ? 'Institutional cohort completion averages, study velocity & grade audits'
-        : 'Your GPA metrics, weekly study activity, and course completion rates',
+        : 'Your module progress, weekly study activity, and course completion rates',
       category: 'Pages',
       href: '/performance',
-      keywords: ['performance', 'gpa', 'grades', 'progress', 'analytics', 'completion', 'activity', 'hours'],
+      keywords: ['performance', 'grades', 'progress', 'analytics', 'completion', 'activity', 'hours'],
       icon: BarChart2,
       badge: 'Analytics',
       badgeColor: 'bg-teal-50 text-teal-700 border-teal-200',
@@ -479,7 +466,7 @@ export const GlobalSearchBar: React.FC = () => {
       recommended: false,
       allowedRoles: ['learner', 'admin'],
     },
-  ], [currentRole, switchRole]);
+  ], [currentRole]);
 
   // STRICT Role-Based Filter: Only items permitted for the current user's role can ever be returned
   const roleAuthorizedItems = useMemo(() => {

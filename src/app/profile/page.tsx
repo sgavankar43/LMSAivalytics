@@ -7,11 +7,10 @@ import { AppShell } from '@/components/layout/AppShell';
 import { useAuth } from '@/context/AuthContext';
 import { useAttendance } from '@/context/AttendanceContext';
 import { mockCourses, mockCertificates } from '@/data/mockData';
-import { CertificateItem, Course } from '@/types';
+import { CertificateItem } from '@/types';
 import { CertificateModal } from '@/components/profile/CertificateModal';
 import { EditProfileModal } from '@/components/profile/EditProfileModal';
 import {
-  User as UserIcon,
   Mail,
   Phone,
   MapPin,
@@ -22,14 +21,10 @@ import {
   Clock,
   ShieldCheck,
   Download,
-  ExternalLink,
   Edit3,
   Share2,
-  TrendingUp,
-  Sparkles,
   ArrowRight,
   Eye,
-  FileCheck,
   Layers,
   GraduationCap,
 } from 'lucide-react';
@@ -41,13 +36,6 @@ export default function ProfilePage() {
 
   const isAdmin = user?.role === 'admin';
 
-  // Redirect admin users to the Admin Dashboard
-  useEffect(() => {
-    if (isAdmin) {
-      router.replace('/');
-    }
-  }, [isAdmin, router]);
-
   // Modal states
   const [selectedCertificate, setSelectedCertificate] = useState<CertificateItem | null>(null);
   const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
@@ -55,33 +43,10 @@ export default function ProfilePage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Filters
-  const [courseCategoryFilter, setCourseCategoryFilter] = useState('All');
   const [certStatusFilter, setCertStatusFilter] = useState<'All' | 'Issued' | 'Pending'>('All');
 
   const studentEmail = user?.email || 'alex.morgan@aivalytics.com';
   const attendanceStats = getStudentAttendance(studentEmail);
-
-  if (isAdmin) {
-    return (
-      <AppShell>
-        <div className="flex flex-col items-center justify-center min-h-[55vh] text-center p-6">
-          <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mb-3 border border-purple-100">
-            <ShieldCheck className="w-6 h-6" />
-          </div>
-          <h2 className="text-lg font-bold text-gray-900">Administrator Console</h2>
-          <p className="text-xs text-gray-500 mt-1 max-w-sm">
-            Student academic profiles and credentials are reserved for learners. Redirecting to Admin Dashboard...
-          </p>
-          <Link
-            href="/"
-            className="mt-4 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#121614] hover:bg-black transition-colors"
-          >
-            Go to Admin Dashboard
-          </Link>
-        </div>
-      </AppShell>
-    );
-  }
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -101,11 +66,6 @@ export default function ProfilePage() {
     }
   };
 
-  // Filtered courses
-  const filteredCourses = mockCourses.filter((course) => {
-    if (courseCategoryFilter === 'All') return true;
-    return course.category === courseCategoryFilter;
-  });
 
   // Filtered certificates
   const filteredCertificates = mockCertificates.filter((cert) => {
@@ -142,10 +102,12 @@ export default function ProfilePage() {
               <span className="text-gray-900 font-medium">My Profile & Credentials</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#111614]">
-              Student Profile & Academic Standing
+              {isAdmin ? 'Faculty Administrator Profile' : 'Student Profile & Academic Standing'}
             </h1>
             <p className="text-xs sm:text-sm text-gray-500 mt-1">
-              Manage your personal record, enrolled course syllabi, and official executive certifications.
+              {isAdmin
+                ? 'Manage your institutional faculty credentials, curriculum direction, and administrator account details.'
+                : 'Manage your personal record, enrolled course syllabus, and official program certifications.'}
             </p>
           </div>
 
@@ -181,7 +143,7 @@ export default function ProfilePage() {
               {/* Avatar with Status Ring */}
               <div className="relative shrink-0">
                 <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-[#121614] text-[#3ECE92] flex items-center justify-center font-extrabold text-2xl sm:text-3xl shadow-lg border-2 border-white">
-                  {user?.initials || 'AM'}
+                  {user?.initials || (isAdmin ? 'AF' : 'LM')}
                 </div>
                 <div
                   className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#3ECE92] border-3 border-white flex items-center justify-center shadow-xs"
@@ -195,117 +157,171 @@ export default function ProfilePage() {
               <div className="space-y-1.5 min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-xl sm:text-2xl font-extrabold text-[#111614] tracking-tight">
-                    {user?.name || 'Alex Morgan'}
+                    {user?.name || (isAdmin ? 'Admin Faculty' : 'Learner')}
                   </h2>
 
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full capitalize bg-[#e8f8f0] text-[#059669] border border-[#d1f4e2]">
-                    <GraduationCap className="w-3.5 h-3.5 text-[#059669]" />
-                    <span>Learner Account</span>
-                  </span>
+                  {isAdmin ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full capitalize bg-purple-50 text-purple-700 border border-purple-200">
+                      <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />
+                      <span>Faculty Administrator</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full capitalize bg-[#e8f8f0] text-[#059669] border border-[#d1f4e2]">
+                      <GraduationCap className="w-3.5 h-3.5 text-[#059669]" />
+                      <span>Learner Account</span>
+                    </span>
+                  )}
 
-                  <span className="text-[11px] font-mono text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-md border border-gray-200">
-                    ID: {user?.studentId || 'AIV-STD-2026-081'}
-                  </span>
+                  {user?.studentId && (
+                    <span className="text-[11px] font-mono text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-md border border-gray-200">
+                      ID: {user.studentId}
+                    </span>
+                  )}
+
+                  {user?.department && (
+                    <span className="text-[11px] font-semibold text-gray-600 bg-gray-50 px-2.5 py-0.5 rounded-md border border-gray-200">
+                      {user.department}
+                    </span>
+                  )}
                 </div>
 
-                <p className="text-xs sm:text-sm font-medium text-gray-700 leading-snug">
-                  {user?.headline || 'AI-Native Project Manager & Operations Specialist'}
-                </p>
+                {user?.headline && (
+                  <p className="text-xs sm:text-sm font-medium text-gray-700 leading-snug">
+                    {user.headline}
+                  </p>
+                )}
 
-                <p className="text-xs text-gray-500 max-w-2xl leading-relaxed pt-1">
-                  {user?.bio ||
-                    'Product and operations leader transitioning to AI-native workflow automation. Currently enrolled in the 3-Month AI-Native Project Management executive certification program with a focus on autonomous agent orchestration and GTM delivery.'}
-                </p>
+                {user?.bio && (
+                  <p className="text-xs text-gray-500 max-w-2xl leading-relaxed pt-1">
+                    {user.bio}
+                  </p>
+                )}
               </div>
             </div>
 
-            {/* Right: Key Contact & Metadata Chips */}
+            {/* Right: Key Contact & Metadata Chips (Only fields that are actually filled) */}
             <div className="bg-[#f8faf9] rounded-2xl p-4 sm:p-5 border border-[#eaedf0] shrink-0 w-full lg:w-80 space-y-2.5">
-              <div className="flex items-center gap-2.5 text-xs text-gray-600">
-                <Mail className="w-4 h-4 text-gray-400 shrink-0" />
-                <span className="truncate">{user?.email || 'alex.morgan@aivalytics.com'}</span>
-                <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded ml-auto">
-                  Verified
-                </span>
-              </div>
+              {user?.email && (
+                <div className="flex items-center gap-2.5 text-xs text-gray-600">
+                  <Mail className="w-4 h-4 text-gray-400 shrink-0" />
+                  <span className="truncate">{user.email}</span>
+                  <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded ml-auto">
+                    Verified
+                  </span>
+                </div>
+              )}
 
-              <div className="flex items-center gap-2.5 text-xs text-gray-600">
-                <Phone className="w-4 h-4 text-gray-400 shrink-0" />
-                <span>{user?.phone || '+1 (555) 382-9102'}</span>
-              </div>
+              {user?.phone && (
+                <div className="flex items-center gap-2.5 text-xs text-gray-600">
+                  <Phone className="w-4 h-4 text-gray-400 shrink-0" />
+                  <span>{user.phone}</span>
+                </div>
+              )}
 
-              <div className="flex items-center gap-2.5 text-xs text-gray-600">
-                <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
-                <span>{user?.location || 'San Francisco, CA (PST)'}</span>
-              </div>
+              {user?.location && (
+                <div className="flex items-center gap-2.5 text-xs text-gray-600">
+                  <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
+                  <span>{user.location}</span>
+                </div>
+              )}
 
-              <div className="flex items-center gap-2.5 text-xs text-gray-600">
-                <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
-                <span>Enrolled: {user?.joinedDate || 'August 01, 2026'}</span>
-              </div>
+              {user?.joinedDate && (
+                <div className="flex items-center gap-2.5 text-xs text-gray-600">
+                  <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
+                  <span>{isAdmin ? 'Joined:' : 'Enrolled:'} {user.joinedDate}</span>
+                </div>
+              )}
 
-              <div className="pt-2 border-t border-gray-200/60 flex items-center justify-between text-[11px] text-gray-500">
-                <span>Cohort:</span>
-                <span className="font-semibold text-gray-800">Fall 2026 (Executive)</span>
-              </div>
+              {(user?.cohort || user?.term) && (
+                <div className="pt-2 border-t border-gray-200/60 flex items-center justify-between text-[11px] text-gray-500">
+                  <span>{isAdmin ? 'Department / Board:' : 'Cohort:'}</span>
+                  <span className="font-semibold text-gray-800">{user.cohort || user.term}</span>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Academic Highlights & Stats Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-6 border-t border-gray-100">
-            <div className="bg-[#f8faf9] rounded-2xl p-3.5 border border-gray-100">
-              <span className="text-[11px] font-medium text-gray-400 flex items-center gap-1">
-                <TrendingUp className="w-3.5 h-3.5 text-[#059669]" />
-                Cumulative GPA
-              </span>
-              <div className="mt-1 flex items-baseline gap-1.5">
-                <span className="text-xl font-extrabold text-gray-900">
-                  {user?.gpa || '3.84 / 4.0'}
-                </span>
-                <span className="text-[10px] font-semibold text-emerald-600">Top 5%</span>
-              </div>
-            </div>
+          {/* Highlights & Stats Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-6 pt-6 border-t border-gray-100">
+            {isAdmin ? (
+              <>
+                <div className="bg-[#f8faf9] rounded-2xl p-3.5 border border-gray-100">
+                  <span className="text-[11px] font-medium text-gray-400 flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />
+                    Administrative Clearance
+                  </span>
+                  <div className="mt-1 flex items-baseline gap-1.5">
+                    <span className="text-xl font-extrabold text-gray-900">Faculty Director</span>
+                    <span className="text-[10px] text-purple-700 font-semibold bg-purple-50 px-1.5 py-0.5 rounded">Full Access</span>
+                  </div>
+                </div>
 
-            <div className="bg-[#f8faf9] rounded-2xl p-3.5 border border-gray-100">
-              <span className="text-[11px] font-medium text-gray-400 flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-[#059669]" />
-                Live Attendance
-              </span>
-              <div className="mt-1 flex items-baseline gap-1.5">
-                <span className="text-xl font-extrabold text-gray-900">
-                  {attendanceStats.percentage}%
-                </span>
-                <span className="text-[10px] text-gray-400">
-                  ({attendanceStats.attendedSessions}/{attendanceStats.totalSessions} sessions)
-                </span>
-              </div>
-            </div>
+                <div className="bg-[#f8faf9] rounded-2xl p-3.5 border border-gray-100">
+                  <span className="text-[11px] font-medium text-gray-400 flex items-center gap-1">
+                    <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+                    Curriculum In Charge
+                  </span>
+                  <div className="mt-1 flex items-baseline gap-1.5">
+                    <span className="text-xl font-extrabold text-gray-900">AINPM-101</span>
+                    <span className="text-[10px] text-emerald-600 font-semibold">Flagship Program</span>
+                  </div>
+                </div>
 
-            <div className="bg-[#f8faf9] rounded-2xl p-3.5 border border-gray-100">
-              <span className="text-[11px] font-medium text-gray-400 flex items-center gap-1">
-                <BookOpen className="w-3.5 h-3.5 text-blue-600" />
-                Active Syllabi
-              </span>
-              <div className="mt-1 flex items-baseline gap-1.5">
-                <span className="text-xl font-extrabold text-gray-900">{totalCourses} Courses</span>
-                <span className="text-[10px] text-emerald-600 font-semibold">100% on track</span>
-              </div>
-            </div>
+                <div className="bg-[#f8faf9] rounded-2xl p-3.5 border border-gray-100">
+                  <span className="text-[11px] font-medium text-gray-400 flex items-center gap-1">
+                    <Award className="w-3.5 h-3.5 text-amber-500" />
+                    Institutional Capacity
+                  </span>
+                  <div className="mt-1 flex items-baseline gap-1.5">
+                    <span className="text-xl font-extrabold text-gray-900">148 Enrolled</span>
+                    <span className="text-[10px] text-gray-400">Learners</span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="bg-[#f8faf9] rounded-2xl p-3.5 border border-gray-100">
+                  <span className="text-[11px] font-medium text-gray-400 flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5 text-[#059669]" />
+                    Live Attendance
+                  </span>
+                  <div className="mt-1 flex items-baseline gap-1.5">
+                    <span className="text-xl font-extrabold text-gray-900">
+                      {attendanceStats.percentage}%
+                    </span>
+                    <span className="text-[10px] text-gray-400">
+                      ({attendanceStats.attendedSessions}/{attendanceStats.totalSessions} sessions)
+                    </span>
+                  </div>
+                </div>
 
-            <div className="bg-[#f8faf9] rounded-2xl p-3.5 border border-gray-100">
-              <span className="text-[11px] font-medium text-gray-400 flex items-center gap-1">
-                <Award className="w-3.5 h-3.5 text-amber-500" />
-                Certifications
-              </span>
-              <div className="mt-1 flex items-baseline gap-1.5">
-                <span className="text-xl font-extrabold text-gray-900">
-                  {issuedCertsCount} Earned
-                </span>
-                <span className="text-[10px] text-gray-400">
-                  ({inProgressCertsCount} in progress)
-                </span>
-              </div>
-            </div>
+                <div className="bg-[#f8faf9] rounded-2xl p-3.5 border border-gray-100">
+                  <span className="text-[11px] font-medium text-gray-400 flex items-center gap-1">
+                    <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+                    Enrolled Program
+                  </span>
+                  <div className="mt-1 flex items-baseline gap-1.5">
+                    <span className="text-xl font-extrabold text-gray-900">{totalCourses} Course</span>
+                    <span className="text-[10px] text-emerald-600 font-semibold">Active Enrollment</span>
+                  </div>
+                </div>
+
+                <div className="bg-[#f8faf9] rounded-2xl p-3.5 border border-gray-100">
+                  <span className="text-[11px] font-medium text-gray-400 flex items-center gap-1">
+                    <Award className="w-3.5 h-3.5 text-amber-500" />
+                    Certifications
+                  </span>
+                  <div className="mt-1 flex items-baseline gap-1.5">
+                    <span className="text-xl font-extrabold text-gray-900">
+                      {issuedCertsCount} Earned
+                    </span>
+                    <span className="text-[10px] text-gray-400">
+                      ({inProgressCertsCount} in progress)
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -318,38 +334,21 @@ export default function ProfilePage() {
                   <BookOpen className="w-4 h-4 text-blue-600" />
                 </div>
                 <h2 className="text-lg sm:text-xl font-bold text-[#111614]">
-                  My Courses & Enrolled Syllabi
+                  Enrolled Program & Syllabus
                 </h2>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
-                  {filteredCourses.length} Courses
+                  {mockCourses.length} Program
                 </span>
               </div>
               <p className="text-xs text-gray-400">
                 Track curriculum completion milestones, assigned instructors, and next upcoming lecture topics.
               </p>
             </div>
-
-            {/* Category Filter Chips */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-              {['All', 'Core Curriculum', 'Analytics & Management', 'Data Science & AI'].map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setCourseCategoryFilter(cat)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
-                    courseCategoryFilter === cat
-                      ? 'bg-[#121614] text-white shadow-2xs'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Courses Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredCourses.map((course) => {
+            {mockCourses.map((course) => {
               return (
                 <div
                   key={course.id}

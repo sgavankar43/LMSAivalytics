@@ -31,14 +31,14 @@ export default function PerformancePage() {
               Performance & Credentials
             </h1>
             <p className="text-xs sm:text-sm text-gray-500 mt-1">
-              Review cumulative academic records, grade breakdowns, and verified completion credentials.
+              Review academic records, evaluation breakdowns, and verified completion credentials.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-[#e8f8f0] text-[#059669] flex items-center gap-1.5">
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>GPA: 3.84 / 4.0</span>
+              <CheckCircle className="w-3.5 h-3.5 text-[#059669]" />
+              <span>Academic Standing: Distinction</span>
             </span>
           </div>
         </div>
@@ -90,7 +90,7 @@ export default function PerformancePage() {
                   <th className="py-3 px-6">Quizzes</th>
                   <th className="py-3 px-6">Assignments</th>
                   <th className="py-3 px-6">Term Exam</th>
-                  <th className="py-3 px-6 text-right">Cumulative</th>
+                  <th className="py-3 px-6 text-right">Overall Grade</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">

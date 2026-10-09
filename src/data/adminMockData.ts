@@ -127,6 +127,7 @@ export const initialImportedStudents: ImportedStudent[] = [
     id: 'STD_1',
     fullName: 'Alex Morgan',
     email: 'alex.morgan@aivalytics.com',
+    password: 'password123',
     courseCode: 'AINPM-101',
     courseName: 'AI-Native Project Management',
     term: 'Fall 2026',
@@ -137,6 +138,7 @@ export const initialImportedStudents: ImportedStudent[] = [
     id: 'STD_2',
     fullName: 'Sarah Connor',
     email: 'sarah.connor@aivalytics.com',
+    password: 'password123',
     courseCode: 'AINPM-101',
     courseName: 'AI-Native Project Management',
     term: 'Fall 2026',
@@ -147,6 +149,7 @@ export const initialImportedStudents: ImportedStudent[] = [
     id: 'STD_3',
     fullName: 'Emily Watson',
     email: 'emily.watson@aivalytics.com',
+    password: 'password123',
     courseCode: 'AINPM-101',
     courseName: 'AI-Native Project Management',
     term: 'Fall 2026',
@@ -157,6 +160,7 @@ export const initialImportedStudents: ImportedStudent[] = [
     id: 'STD_4',
     fullName: 'David Miller',
     email: 'david.miller@aivalytics.com',
+    password: 'password123',
     courseCode: 'AINPM-101',
     courseName: 'AI-Native Project Management',
     term: 'Fall 2026',
@@ -167,6 +171,7 @@ export const initialImportedStudents: ImportedStudent[] = [
     id: 'STD_5',
     fullName: 'Sophia Patel',
     email: 'sophia.p@aivalytics.com',
+    password: 'password123',
     courseCode: 'AINPM-101',
     courseName: 'AI-Native Project Management',
     term: 'Fall 2026',
@@ -177,6 +182,7 @@ export const initialImportedStudents: ImportedStudent[] = [
     id: 'STD_6',
     fullName: 'Liam Chen',
     email: 'liam.chen@aivalytics.com',
+    password: 'password123',
     courseCode: 'AINPM-101',
     courseName: 'AI-Native Project Management',
     term: 'Fall 2026',
@@ -185,7 +191,7 @@ export const initialImportedStudents: ImportedStudent[] = [
   },
 ];
 
-export const sampleCsvTemplate = `Student ID,Full Name,Email,Course Code,Course Name,Term,Status,Enrolled Date
-STD_7,Elena Rostova,elena.r@aivalytics.com,AINPM-101,AI-Native Project Management,Fall 2026,Active,Aug 15 2026
-STD_8,Marcus Thorne,marcus.t@aivalytics.com,AINPM-101,AI-Native Project Management,Fall 2026,Active,Aug 15 2026
-STD_9,Aisha Khan,aisha.k@aivalytics.com,AINPM-101,AI-Native Project Management,Fall 2026,Active,Aug 15 2026`;
+export const sampleCsvTemplate = `Student ID,Full Name,Email,Password,Course Code,Course Name,Term,Status,Enrolled Date
+STD_7,Elena Rostova,elena.r@aivalytics.com,Elena@Pass2026,AINPM-101,AI-Native Project Management,Fall 2026,Active,Aug 15 2026
+STD_8,Marcus Thorne,marcus.t@aivalytics.com,Marcus@Pass2026,AINPM-101,AI-Native Project Management,Fall 2026,Active,Aug 15 2026
+STD_9,Aisha Khan,aisha.k@aivalytics.com,Aisha@Pass2026,AINPM-101,AI-Native Project Management,Fall 2026,Active,Aug 15 2026`;
