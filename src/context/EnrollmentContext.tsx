@@ -148,65 +148,24 @@ export const EnrollmentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return [...novel, ...prev];
     });
 
-    if (!isSupabaseConfigured) return;
-
     try {
-      // Get the flagship course ID
-      const { data: courseData } = await supabase
-        .from('Course')
-        .select('id')
-        .eq('code', 'AINPM-101')
-        .single();
+      const res = await fetch('/api/admin/bulk-import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ students: newStudents }),
+      });
 
-      const courseId = courseData?.id;
-
-      for (const student of newStudents) {
-        // Find or create User
-        const { data: existingUser } = await supabase
-          .from('User')
-          .select('id')
-          .eq('email', student.email.toLowerCase())
-          .maybeSingle();
-
-        let userId = existingUser?.id;
-
-        if (!userId) {
-          const { data: newUser, error: userError } = await supabase
-            .from('User')
-            .insert({
-              email: student.email.toLowerCase(),
-              fullName: student.fullName,
-              role: 'LEARNER',
-              term: student.term || 'Fall 2026',
-              password: student.password || null,
-            })
-            .select('id')
-            .single();
-
-          if (userError) {
-            console.error('Error creating user for enrollment:', userError.message);
-            continue;
-          }
-          userId = newUser?.id;
-        }
-
-        if (userId && courseId) {
-          // Upsert Enrollment record
-          await supabase.from('Enrollment').upsert(
-            {
-              userId,
-              courseId,
-              status: student.status || 'Active',
-              progress: 0.0,
-            },
-            { onConflict: 'userId,courseId' }
-          );
-        }
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        console.error('Error from /api/admin/bulk-import:', data.error);
       }
 
       await fetchEnrollmentsFromDb();
     } catch (err) {
       console.error('Error persisting imported students to DB:', err);
+      await fetchEnrollmentsFromDb();
     }
   };
 

@@ -86,9 +86,9 @@ export default function EnrollmentPage() {
     }
   };
 
-  const handleImportSuccess = (newStudents: ImportedStudent[]) => {
-    importStudents(newStudents);
-    showToast(`Successfully enrolled ${newStudents.length} students via CSV.`);
+  const handleImportSuccess = async (newStudents: ImportedStudent[]) => {
+    await importStudents(newStudents);
+    showToast(`Successfully registered & enrolled ${newStudents.length} students.`);
   };
 
   const handleDelete = (id: string, name: string) => {

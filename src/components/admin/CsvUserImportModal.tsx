@@ -18,7 +18,7 @@ import {
 interface CsvUserImportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onImportStudents: (newStudents: ImportedStudent[]) => void;
+  onImportStudents: (newStudents: ImportedStudent[]) => void | Promise<void>;
 }
 
 interface ParsedRow {
@@ -218,7 +218,7 @@ export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
     reader.readAsText(file);
   };
 
-  const handleConfirmImport = () => {
+  const handleConfirmImport = async () => {
     const validRows = parsedRows.filter((r) => r.isValid);
     if (validRows.length === 0) return;
 
@@ -234,15 +234,22 @@ export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
       status: r.status || 'Active',
     }));
 
-    onImportStudents(newStudents);
-    setSuccessCount(newStudents.length);
+    try {
+      setIsProcessing(true);
+      await onImportStudents(newStudents);
+      setSuccessCount(newStudents.length);
 
-    setTimeout(() => {
-      setSuccessCount(null);
-      setParsedRows([]);
-      setFileName('');
-      onClose();
-    }, 1500);
+      setTimeout(() => {
+        setSuccessCount(null);
+        setParsedRows([]);
+        setFileName('');
+        onClose();
+      }, 1500);
+    } catch (err) {
+      console.error('Error importing students:', err);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -393,10 +400,10 @@ export const CsvUserImportModal: React.FC<CsvUserImportModalProps> = ({
                 type="button"
                 disabled={parsedRows.filter((r) => r.isValid).length === 0 || isProcessing}
                 onClick={handleConfirmImport}
-                className="px-6 py-2 rounded-xl text-xs font-bold bg-[#3ECE92] text-[#111614] hover:bg-[#34be83] disabled:opacity-50 transition-all flex items-center gap-1.5 shadow-xs"
+                className="px-6 py-2 rounded-xl text-xs font-bold bg-[#3ECE92] text-[#111614] hover:bg-[#34be83] disabled:opacity-50 transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
               >
                 <UserPlus className="w-3.5 h-3.5" />
-                <span>Confirm & Import Students</span>
+                <span>{isProcessing ? 'Registering & Enrolling...' : 'Confirm & Import Students'}</span>
               </button>
             </div>
           </div>
