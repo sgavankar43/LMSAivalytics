@@ -34,7 +34,14 @@ import {
 export default function ProfilePage() {
   const { user } = useAuth();
   const { getStudentAttendance } = useAttendance();
-  const { courses, courseProgress, totalLessons, completedLessonsCount, modules } = useCourses();
+  const {
+    courses,
+    courseProgress,
+    totalLessons,
+    completedLessonsCount,
+    modules,
+    isLessonCompleted,
+  } = useCourses();
   const { students } = useEnrollment();
   const router = useRouter();
 
@@ -70,17 +77,82 @@ export default function ProfilePage() {
     }
   };
 
+  // Dynamic user credentials based on real curriculum completion
+  const dynamicCertificates: CertificateItem[] = React.useMemo(() => {
+    const mod1Completed =
+      modules[0] &&
+      modules[0].submodules.length > 0 &&
+      modules[0].submodules.every((s) => isLessonCompleted(s.id));
+    const mod2Completed =
+      modules[1] &&
+      modules[1].submodules.length > 0 &&
+      modules[1].submodules.every((s) => isLessonCompleted(s.id));
+    const mod3Completed =
+      modules[2] &&
+      modules[2].submodules.length > 0 &&
+      modules[2].submodules.every((s) => isLessonCompleted(s.id));
+
+    const studentSuffix = user?.id ? user.id.slice(0, 4).toUpperCase() : 'STD';
+
+    return [
+      {
+        id: 'cert_1',
+        title: 'AI Foundations Certified',
+        issueDate: mod1Completed ? 'Recently Issued' : 'Target: Month 1',
+        credentialId: mod1Completed
+          ? `AIV-CERT-2026-FND-${studentSuffix}`
+          : 'AIV-CERT-2026-FND-PENDING',
+        status: mod1Completed ? 'Issued' : 'Pending',
+        grade: mod1Completed ? '100% (Distinction)' : 'In Progress',
+        program: 'AI-Native Project Management Program',
+        issuer: 'AIvalytics Senate & Curriculum Board',
+        description:
+          'Verified mastery in modern LLM reasoning, tokens, context windows, CTID & CO-STAR frameworks, SOP engineering, and single-agent architecture.',
+        skills: ['Context Engineering', 'CTID Framework', 'SOP Engineering', 'AI Builder Stack', 'Agent Architecture'],
+      },
+      {
+        id: 'cert_2',
+        title: 'AI Agents & Orchestration Certified',
+        issueDate: mod2Completed ? 'Recently Issued' : 'Target: Month 2',
+        credentialId: mod2Completed
+          ? `AIV-CERT-2026-AGN-${studentSuffix}`
+          : 'AIV-CERT-2026-AGN-PENDING',
+        status: mod2Completed ? 'Issued' : 'Pending',
+        grade: mod2Completed ? '100% (Distinction)' : 'In Progress',
+        program: 'AI-Native Project Management Program',
+        issuer: 'AIvalytics Senate & Curriculum Board',
+        description:
+          'Design and deployment of multi-agent business automation topologies, webhook error boundaries, n8n production workflows, and enterprise RAG pipelines.',
+        skills: ['Multi-Agent Systems', 'n8n Orchestration', 'RAG Architecture', 'Webhooks', 'Memory Systems'],
+      },
+      {
+        id: 'cert_3',
+        title: 'AI-Native Project Management Certified (Executive Capstone)',
+        issueDate: mod3Completed ? 'Recently Issued' : 'Target: Month 3',
+        credentialId: mod3Completed
+          ? `AIV-CERT-2026-NPM-${studentSuffix}`
+          : 'AIV-CERT-2026-NPM-PENDING',
+        status: mod3Completed ? 'Issued' : 'Pending',
+        grade: mod3Completed ? '100% (Distinction)' : 'In Progress',
+        program: 'AI-Native Project Management Program',
+        issuer: 'AIvalytics Senate & Curriculum Board',
+        description:
+          'Execution leadership, Tiered Autonomy Framework, Narrow-First Playbook, LLM-as-a-Judge validation, and live defense of production AI-native project.',
+        skills: ['Tiered Autonomy', 'Narrow-First Playbook', 'LLM-as-a-Judge', 'Delivery Governance', 'GTM Execution'],
+      },
+    ];
+  }, [modules, isLessonCompleted, user]);
 
   // Filtered certificates
-  const filteredCertificates = mockCertificates.filter((cert) => {
+  const filteredCertificates = dynamicCertificates.filter((cert) => {
     if (certStatusFilter === 'All') return true;
     return cert.status === certStatusFilter;
   });
 
   // Overall completed courses
   const totalCourses = courses.length;
-  const issuedCertsCount = mockCertificates.filter((c) => c.status === 'Issued').length;
-  const inProgressCertsCount = mockCertificates.filter((c) => c.status === 'Pending').length;
+  const issuedCertsCount = dynamicCertificates.filter((c) => c.status === 'Issued').length;
+  const inProgressCertsCount = dynamicCertificates.filter((c) => c.status === 'Pending').length;
 
   return (
     <AppShell>
@@ -472,7 +544,11 @@ export default function ProfilePage() {
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  {status === 'All' ? 'All Credentials (3)' : status === 'Issued' ? 'Issued (1)' : 'In Progress (2)'}
+                  {status === 'All'
+                    ? `All Credentials (${dynamicCertificates.length})`
+                    : status === 'Issued'
+                    ? `Issued (${issuedCertsCount})`
+                    : `In Progress (${inProgressCertsCount})`}
                 </button>
               ))}
             </div>

@@ -48,11 +48,12 @@ export default function TestsPage() {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  // Student specific attempts lookup
-  const studentEmail = user?.email || 'alex.morgan@aivalytics.com';
-  const myAttempts = attempts.filter(
-    (a) => a.studentEmail.toLowerCase() === studentEmail.toLowerCase()
-  );
+  const studentEmail = user?.email || '';
+  const myAttempts = studentEmail
+    ? attempts.filter(
+        (a) => a.studentEmail && a.studentEmail.toLowerCase() === studentEmail.toLowerCase()
+      )
+    : [];
 
   const isQuizCompletedByMe = (quizId: string) => {
     return myAttempts.some((a) => a.quizId === quizId);

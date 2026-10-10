@@ -35,8 +35,8 @@ export const ProjectSubmissionsLearnerView: React.FC = () => {
   const { user } = useAuth();
   const { modules, getStudentSubpartSubmission, submitProject } = useProjectSubmissions();
 
-  const studentEmail = user?.email || 'alex.morgan@aivalytics.com';
-  const studentName = user?.name || 'Alex Morgan';
+  const studentEmail = user?.email || '';
+  const studentName = user?.name || 'Learner';
 
   // UI state
   const [expandedModuleId, setExpandedModuleId] = useState<string>('mod_1');
@@ -132,7 +132,7 @@ export const ProjectSubmissionsLearnerView: React.FC = () => {
     submitProject({
       moduleId: activeSubpartModal.module.id,
       subpartId: activeSubpartModal.subpart.id,
-      studentId: user?.id || 'usr_01',
+      studentId: user?.id || '',
       studentName,
       studentEmail,
       files: uploadedFiles,

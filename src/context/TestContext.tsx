@@ -63,7 +63,7 @@ export const TestProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Failed to load cached quiz attempts', err);
       }
     }
-    return initialQuizAttempts;
+    return [];
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -440,8 +440,9 @@ export const TestProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const getAttemptsByStudent = (studentEmail: string) => {
+    if (!studentEmail || !studentEmail.trim()) return [];
     return attempts.filter(
-      (a) => a.studentEmail.toLowerCase() === studentEmail.toLowerCase()
+      (a) => a.studentEmail && a.studentEmail.toLowerCase() === studentEmail.toLowerCase().trim()
     );
   };
 

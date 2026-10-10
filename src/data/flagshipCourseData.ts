@@ -21,7 +21,7 @@ export const initialCurriculumModules: CurriculumModule[] = [
         duration: '45m',
         videoUrl: 'https://example.com/videos/ai-fundamentals',
         type: 'video',
-        isCompleted: true,
+        isCompleted: false,
         order: 1,
         takeaways: [
           'What LLMs actually are under the hood',
@@ -44,7 +44,7 @@ export const initialCurriculumModules: CurriculumModule[] = [
         duration: '50m',
         videoUrl: 'https://example.com/videos/context-engineering',
         type: 'video',
-        isCompleted: true,
+        isCompleted: false,
         order: 2,
         takeaways: [
           'The CTID Framework (Context, Task, Instructions, Data)',
@@ -67,7 +67,7 @@ export const initialCurriculumModules: CurriculumModule[] = [
         duration: '40m',
         videoUrl: 'https://example.com/videos/sop-engineering',
         type: 'video',
-        isCompleted: true,
+        isCompleted: false,
         order: 3,
         takeaways: [
           'Writing machine-readable Standard Operating Procedures',
@@ -89,7 +89,7 @@ export const initialCurriculumModules: CurriculumModule[] = [
         duration: '60m',
         videoUrl: 'https://example.com/videos/ai-builder-stack',
         type: 'video',
-        isCompleted: true,
+        isCompleted: false,
         order: 4,
         takeaways: [
           'Rapid prototyping with Claude Code and Cursor',

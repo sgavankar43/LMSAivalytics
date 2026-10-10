@@ -130,8 +130,8 @@ export default function SupportPage() {
         course: newCourse,
         category: newCategory,
         priority: newPriority,
-        studentName: user?.name || 'Alex Morgan',
-        studentEmail: user?.email || 'alex.morgan@aivalytics.com',
+        studentName: user?.name || 'Student',
+        studentEmail: user?.email || '',
       });
 
       setShowNewModal(false);

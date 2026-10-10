@@ -94,34 +94,25 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return initialCurriculumModules;
   });
 
-  const [completedLessonIds, setCompletedLessonIds] = useState<string[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem(COMPLETED_LESSONS_STORAGE_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed)) return parsed;
-        }
-      } catch (err) {
-        console.error('Failed to load cached lesson completion:', err);
-      }
-    }
-    return ['sub_1_1', 'sub_1_2', 'sub_1_3', 'sub_1_4'];
-  });
+  const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([]);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const userLessonKey = user?.id ? `aivalytics_lms_completed_lessons_${user.id}` : null;
 
   // Sync to localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem(MODULES_STORAGE_KEY, JSON.stringify(modules));
-        localStorage.setItem(COMPLETED_LESSONS_STORAGE_KEY, JSON.stringify(completedLessonIds));
+        if (userLessonKey) {
+          localStorage.setItem(userLessonKey, JSON.stringify(completedLessonIds));
+        }
       } catch (err) {
         console.error('Failed to cache course state:', err);
       }
     }
-  }, [modules, completedLessonIds]);
+  }, [modules, completedLessonIds, userLessonKey]);
 
   // Fetch course, modules, lessons and user progress from Supabase Postgres
   const fetchCourseDataFromDb = useCallback(async () => {
@@ -218,7 +209,11 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             .filter((p: any) => p.completed)
             .map((p: any) => p.lessonId);
           setCompletedLessonIds(completedIds);
+        } else {
+          setCompletedLessonIds([]);
         }
+      } else {
+        setCompletedLessonIds([]);
       }
     } catch (err) {
       console.error('Failed to sync course data from DB:', err);

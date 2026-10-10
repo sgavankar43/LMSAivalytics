@@ -643,7 +643,19 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Get student attendance metrics for the student dashboard
   const getStudentAttendance = useCallback(
     (studentEmail: string): StudentAttendanceStats => {
-      const emailNorm = studentEmail.toLowerCase();
+      if (!studentEmail || !studentEmail.trim()) {
+        return {
+          studentEmail: '',
+          totalSessions: 0,
+          attendedSessions: 0,
+          missedSessions: 0,
+          lateSessions: 0,
+          percentage: 0,
+          sessionDetails: [],
+        };
+      }
+
+      const emailNorm = studentEmail.toLowerCase().trim();
       const sessionDetails: Array<{
         sessionId: string;
         sessionTitle: string;

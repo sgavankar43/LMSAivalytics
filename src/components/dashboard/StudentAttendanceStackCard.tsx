@@ -217,7 +217,8 @@ const LectureReflectionModal: React.FC<LectureReflectionModalProps> = ({
   );
 };
 
-const STORAGE_KEY = 'aivalytics_student_reflections_v1';
+const getReflectionStorageKey = (email: string) =>
+  `aivalytics_student_reflections_${email ? email.toLowerCase().trim() : 'guest'}`;
 
 export const StudentAttendanceStackCard: React.FC<StudentAttendanceStackCardProps> = ({
   sessions,
@@ -241,37 +242,31 @@ export const StudentAttendanceStackCard: React.FC<StudentAttendanceStackCardProp
   // Reflection modal state
   const [selectedSessionForReflection, setSelectedSessionForReflection] = useState<SessionItem | null>(null);
   const [reflections, setReflections] = useState<Record<string, StudentReflection>>(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && studentEmail) {
       try {
-        const saved = localStorage.getItem(STORAGE_KEY);
+        const key = getReflectionStorageKey(studentEmail);
+        const saved = localStorage.getItem(key);
         if (saved) return JSON.parse(saved);
       } catch (err) {
         console.error('Failed to load reflections', err);
       }
     }
-    // Initial default reflection for demo
-    return {
-      sess_1: {
-        sessionId: 'sess_1',
-        takeaway: 'Key takeaway: Understanding program curriculum milestones and grading rubrics.',
-        comprehension: 'Mastered',
-        savedAt: 'Aug 04, 2026',
-      },
-    };
+    return {};
   });
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Save reflections to localStorage
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && studentEmail) {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(reflections));
+        const key = getReflectionStorageKey(studentEmail);
+        localStorage.setItem(key, JSON.stringify(reflections));
       } catch (err) {
         console.error('Failed to save reflections', err);
       }
     }
-  }, [reflections]);
+  }, [reflections, studentEmail]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -361,12 +356,12 @@ export const StudentAttendanceStackCard: React.FC<StudentAttendanceStackCardProp
         };
       }
 
-      // Default for closed historical lectures: marked Present
+      // Closed session without explicit attendance record: Not Attended
       return {
-        status: 'PRESENT',
-        label: '✓ Present',
-        sublabel: 'Attended (100%)',
-        badgeBg: 'bg-emerald-50 text-emerald-800 border border-emerald-200/90',
+        status: 'ABSENT',
+        label: '✕ Not Attended',
+        sublabel: 'Unrecorded',
+        badgeBg: 'bg-gray-100 text-gray-500 border border-gray-200',
       };
     },
     [getSessionAttendance, studentEmail, studentStats]

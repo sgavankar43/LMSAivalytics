@@ -57,10 +57,12 @@ export default function AssessmentsPage() {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  const studentEmail = user?.email || 'alex.morgan@aivalytics.com';
-  const myQuizAttempts = attempts.filter(
-    (a) => a.studentEmail.toLowerCase() === studentEmail.toLowerCase()
-  );
+  const studentEmail = user?.email || '';
+  const myQuizAttempts = studentEmail
+    ? attempts.filter(
+        (a) => a.studentEmail && a.studentEmail.toLowerCase() === studentEmail.toLowerCase()
+      )
+    : [];
 
   const isQuizCompletedByMe = (quizId: string) => {
     return myQuizAttempts.some((a) => a.quizId === quizId);

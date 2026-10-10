@@ -453,12 +453,10 @@ export const SupportTicketProvider: React.FC<{ children: React.ReactNode }> = ({
     return tickets.filter((t) => {
       const tEmail = t.studentEmail?.toLowerCase().trim();
       const tUid = t.userId?.toLowerCase().trim();
-      const tName = t.studentName?.toLowerCase().trim();
 
       return (
         (email && (tEmail === email || tUid === email)) ||
-        (uid && (tUid === uid || tEmail === uid)) ||
-        (uname && tName === uname)
+        (uid && (tUid === uid || tEmail === uid))
       );
     });
   }, [tickets, user]);

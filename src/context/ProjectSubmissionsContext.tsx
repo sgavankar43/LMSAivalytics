@@ -109,7 +109,7 @@ export const ProjectSubmissionsProvider: React.FC<{ children: React.ReactNode }>
         console.error('Failed to load cached project submissions', err);
       }
     }
-    return initialProjectSubmissions;
+    return [];
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -557,8 +557,9 @@ export const ProjectSubmissionsProvider: React.FC<{ children: React.ReactNode }>
   };
 
   const getSubmissionsByStudent = (studentEmail: string) => {
+    if (!studentEmail || !studentEmail.trim()) return [];
     return submissions.filter(
-      (s) => s.studentEmail.toLowerCase() === studentEmail.toLowerCase()
+      (s) => s.studentEmail && s.studentEmail.toLowerCase() === studentEmail.toLowerCase().trim()
     );
   };
 
@@ -567,9 +568,11 @@ export const ProjectSubmissionsProvider: React.FC<{ children: React.ReactNode }>
   };
 
   const getStudentSubpartSubmission = (studentEmail: string, subpartId: string) => {
+    if (!studentEmail || !studentEmail.trim()) return undefined;
     return submissions.find(
       (s) =>
-        s.studentEmail.toLowerCase() === studentEmail.toLowerCase() &&
+        s.studentEmail &&
+        s.studentEmail.toLowerCase() === studentEmail.toLowerCase().trim() &&
         s.subpartId === subpartId
     );
   };
